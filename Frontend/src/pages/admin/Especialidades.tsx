@@ -168,10 +168,10 @@ export const Especialidades = () => {
                     <div className="flex items-start justify-between mb-6">
                         <div>
                             <h1 className="text-3xl font-extrabold text-ink mb-1">{t.especialidadesTitulo}</h1>
-                            <p className="text-sm text-mute">Gestiona las especialidades, el cuerpo médico y su disponibilidad</p>
+                            <p className="text-sm text-mute">{t.especialidadesSubDetalle}</p>
                         </div>
                         <Boton variante="secondary" onClick={ejecutarRevision} disabled={revisando}>
-                            {revisando ? 'Ejecutando...' : '⟳ Ejecutar revisión ahora'}
+                            {revisando ? t.ejecutandoRevision : t.ejecutarRevisionAhora}
                         </Boton>
                     </div>
 
@@ -180,8 +180,8 @@ export const Especialidades = () => {
                         <Card className="p-6">
                             <h2 className="text-lg font-bold text-blue-deep mb-4">{t.nuevaEspecialidad}</h2>
                             <form onSubmit={crearEspecialidad} className="space-y-3">
-                                <Input label="Nombre" value={nombreEsp} onChange={(e) => setNombreEsp(e.target.value)} placeholder="Cardiología" required />
-                                <Input label="Descripción" value={descEsp} onChange={(e) => setDescEsp(e.target.value)} placeholder="Atención del corazón" required />
+                                <Input label={t.nombre} value={nombreEsp} onChange={(e) => setNombreEsp(e.target.value)} placeholder="Cardiología" required />
+                                <Input label={t.descripcion} value={descEsp} onChange={(e) => setDescEsp(e.target.value)} placeholder="Atención del corazón" required />
                                 <label className="flex items-center gap-2 cursor-pointer py-1">
                                     <input
                                         type="checkbox"
@@ -194,7 +194,7 @@ export const Especialidades = () => {
                                     </span>
                                 </label>
                                 {msgEsp && <p className={`text-xs font-semibold ${msgEsp.startsWith('✓') ? 'text-success' : 'text-danger'}`}>{msgEsp}</p>}
-                                <Boton type="submit" fullWidth>Crear especialidad</Boton>
+                                <Boton type="submit" fullWidth>{t.crearEspecialidad}</Boton>
                             </form>
                         </Card>
 
@@ -202,19 +202,19 @@ export const Especialidades = () => {
                         <Card className="p-6">
                             <h2 className="text-lg font-bold text-blue-deep mb-4">{t.nuevoMedico}</h2>
                             <form onSubmit={crearMedico} className="space-y-3">
-                                <Input label="Nombres" value={nombresMed} onChange={(e) => setNombresMed(e.target.value)} placeholder="Andrea" required />
-                                <Input label="Apellidos" value={apellidosMed} onChange={(e) => setApellidosMed(e.target.value)} placeholder="Torres" required />
+                                <Input label={t.nombres} value={nombresMed} onChange={(e) => setNombresMed(e.target.value)} placeholder="Andrea" required />
+                                <Input label={t.apellidos} value={apellidosMed} onChange={(e) => setApellidosMed(e.target.value)} placeholder="Torres" required />
                                 <div>
                                     <label className="block text-xs font-semibold text-ink-soft mb-2">{t.especialidad}</label>
                                     <select value={espMed} onChange={(e) => setEspMed(Number(e.target.value))}
                                         className="w-full px-4 py-3 text-sm bg-white rounded-lg border border-gray-200 focus:border-sky-main outline-none">
-                                        <option value={0}>Selecciona...</option>
+                                        <option value={0}>{t.seleccionaPuntos}</option>
                                         {activas.map(e => <option key={e.id_especialidad} value={e.id_especialidad}>{e.nombre}</option>)}
                                     </select>
                                 </div>
                                 <label className="flex items-center gap-2 text-xs font-semibold text-ink-soft cursor-pointer">
                                     <input type="checkbox" checked={conCuenta} onChange={(e) => setConCuenta(e.target.checked)} />
-                                    Crear cuenta de acceso para el médico
+                                    {t.crearCuentaAccesoMedico}
                                 </label>
                                 {conCuenta && (
                                     <div className="space-y-3 border-l-2 border-sky-main pl-3">
@@ -226,13 +226,13 @@ export const Especialidades = () => {
                                     </div>
                                 )}
                                 {msgMed && <p className={`text-xs font-semibold ${msgMed.startsWith('✓') ? 'text-success' : 'text-danger'}`}>{msgMed}</p>}
-                                <Boton type="submit" fullWidth>Registrar médico</Boton>
+                                <Boton type="submit" fullWidth>{t.registrarMedico}</Boton>
                             </form>
                         </Card>
                     </div>
 
                     {/* Lista especialidades */}
-                    <h2 className="text-lg font-bold text-ink mt-8 mb-3">Especialidades registradas</h2>
+                    <h2 className="text-lg font-bold text-ink mt-8 mb-3">{t.especialidadesRegistradas}</h2>
                     {cargando ? <Card className="p-6 text-center text-mute text-sm">Cargando...</Card> : (
                         <div className="space-y-2 mb-8">
                             {especialidades.map(e => (
@@ -255,7 +255,7 @@ export const Especialidades = () => {
                     )}
 
                     {/* Lista médicos */}
-                    <h2 className="text-lg font-bold text-ink mb-3">Médicos registrados</h2>
+                    <h2 className="text-lg font-bold text-ink mb-3">{t.medicosRegistrados}</h2>
                     <div className="space-y-2">
                         {medicos.map(m => (
                             <Card key={m.id_medico} className="p-4 flex items-center justify-between">
@@ -271,7 +271,7 @@ export const Especialidades = () => {
                                 <div className="flex items-center gap-2">
                                     {m.tiene_cuenta
                                         ? <Badge variante="success">Con acceso{m.cmp ? ` · CMP ${m.cmp}` : ''}</Badge>
-                                        : <Boton tamano="sm" variante="secondary" onClick={() => { setCuentaPara(m); setMsgCuenta(null); }}>Crear acceso</Boton>}
+                                        : <Boton tamano="sm" variante="secondary" onClick={() => { setCuentaPara(m); setMsgCuenta(null); }}>{t.crearAcceso}</Boton>}
                                 <Boton tamano="sm" variante="secondary" onClick={() => setProgramar({ tipo: 'medico', id: m.id_medico, nombre: `Dr. ${m.nombres} ${m.apellidos}`, fechaInhab: m.fecha_inhabilitacion ?? null, fechaHab: m.fecha_habilitacion ?? null })}>
                                     Programar
                                 </Boton>
@@ -294,7 +294,7 @@ export const Especialidades = () => {
                                     {msgCuenta && <p role="alert" className="text-xs font-semibold text-danger mb-2">{msgCuenta}</p>}
                                     <div className="flex gap-2">
                                         <Boton type="button" variante="secondary" onClick={() => setCuentaPara(null)}>{t.cancelar}</Boton>
-                                        <Boton type="submit">Crear acceso</Boton>
+                                        <Boton type="submit">{t.crearAcceso}</Boton>
                                     </div>
                                 </div>
                             </form>

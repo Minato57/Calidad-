@@ -246,6 +246,51 @@ export interface TraduccionEsquema {
     // Especialidades traducidas
     especialidadesTraducidas: Record<string, { nombre: string; descripcion: string }>;
 
+    
+    // Correos
+    envioCorreos: string;
+    noHayCorreosPendientes: string;
+    correosPendientesDeEnviar: string;
+    cronInfo: string;
+    enviarCorreosAhora: string;
+    enviandoCorreos: string;
+    agregarRemitente: string;
+    editarRemitente: string;
+    contrasenaAplicacion: string;
+    nombreVisibleOpcional: string;
+    hostSmtpOpcional: string;
+    puertoOpcional: string;
+    prioridadInfo: string;
+    remitentesConfigurados: string;
+    sinRemitentesConfigurados: string;
+    activar: string;
+    desactivar: string;
+    editar: string;
+
+    // Admisión
+    personalVentanillaSub: string;
+    nuevaCuenta: string;
+    telefono: string;
+    dni: string;
+    crearCuenta: string;
+    creandoCuenta: string;
+    cuentasRegistradas: string;
+    sinCuentasRegistradas: string;
+
+    // Especialidades y Médicos
+    especialidadesSubDetalle: string;
+    ejecutarRevisionAhora: string;
+    ejecutandoRevision: string;
+    requiereDatosMenorEj: string;
+    crearEspecialidad: string;
+    seleccionaPuntos: string;
+    crearCuentaAccesoMedico: string;
+    registrarMedico: string;
+    especialidadesRegistradas: string;
+    medicosRegistrados: string;
+    programar: string;
+    crearAcceso: string;
+
     diasSemana: string[];
     meses: string[];
 }

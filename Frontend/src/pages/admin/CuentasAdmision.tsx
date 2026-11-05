@@ -70,22 +70,22 @@ export const CuentasAdmision = () => {
                 <Sidebar />
                 <main id="contenido-principal" className="flex-1 p-8 max-w-4xl">
                     <h1 className="text-3xl font-extrabold text-ink mb-1">{t.cuentasAdmisionTitulo}</h1>
-                    <p className="text-sm text-mute mb-6">Crea y gestiona el personal de ventanilla</p>
+                    <p className="text-sm text-mute mb-6">{t.personalVentanillaSub}</p>
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         {/* Form */}
                         <Card className="p-6">
-                            <h2 className="text-lg font-bold text-blue-deep mb-4">Nueva cuenta</h2>
+                            <h2 className="text-lg font-bold text-blue-deep mb-4">{t.nuevaCuenta}</h2>
                             <form onSubmit={crear} className="space-y-3">
-                                <Input label="Correo" type="email" value={correo} onChange={(e) => setCorreo(e.target.value)} placeholder="admision2@carenest.pe" required />
-                                <Input label="Contraseña" type="password" value={contrasena} onChange={(e) => setContrasena(e.target.value)} placeholder="Mínimo 6 caracteres" required />
+                                <Input label={t.correoElectronico} type="email" value={correo} onChange={(e) => setCorreo(e.target.value)} placeholder="admision2@carenest.pe" required />
+                                <Input label={t.contrasena} type="password" value={contrasena} onChange={(e) => setContrasena(e.target.value)} placeholder="Mínimo 6 caracteres" required />
                                 <div className="grid grid-cols-2 gap-3">
                                     <Input label={t.nombres} value={nombres} onChange={(e) => setNombres(e.target.value)} required />
                                     <Input label={t.apellidos} value={apellidos} onChange={(e) => setApellidos(e.target.value)} required />
                                 </div>
                                 <div className="grid grid-cols-2 gap-3">
-                                    <Input label="DNI" value={dni} onChange={(e) => setDni(e.target.value.replace(/\D/g, ''))} maxLength={8} required />
-                                    <Input label="Teléfono" value={telefono} onChange={(e) => setTelefono(e.target.value.replace(/\D/g, ''))} maxLength={9} required />
+                                    <Input label={t.dni} value={dni} onChange={(e) => setDni(e.target.value.replace(/\D/g, ''))} maxLength={8} required />
+                                    <Input label={t.telefono} value={telefono} onChange={(e) => setTelefono(e.target.value.replace(/\D/g, ''))} maxLength={9} required />
                                 </div>
                                 {msg && (
                                     <div className={`p-3 rounded-lg ${msg.ok ? 'bg-success-soft' : 'bg-danger-soft'}`}>
@@ -93,14 +93,14 @@ export const CuentasAdmision = () => {
                                     </div>
                                 )}
                                 <Boton type="submit" fullWidth disabled={procesando}>
-                                    {procesando ? 'Creando...' : 'Crear cuenta'}
+                                    {procesando ? t.creandoCuenta : t.crearCuenta}
                                 </Boton>
                             </form>
                         </Card>
 
                         {/* Lista */}
                         <div>
-                            <h2 className="text-lg font-bold text-ink mb-3">Cuentas registradas ({cuentas.length})</h2>
+                            <h2 className="text-lg font-bold text-ink mb-3">{t.cuentasRegistradas} ({cuentas.length})</h2>
                             {cargando ? <Card className="p-6 text-center text-mute text-sm">Cargando...</Card> : (
                                 <div className="space-y-2">
                                     {cuentas.map(c => (
@@ -115,7 +115,7 @@ export const CuentasAdmision = () => {
                                             <Badge variante={c.activo ? 'success' : 'gray'}>{c.activo ? 'ACTIVO' : 'INACTIVO'}</Badge>
                                         </Card>
                                     ))}
-                                    {cuentas.length === 0 && <Card className="p-6 text-center text-mute text-sm">No hay cuentas registradas</Card>}
+                                    {cuentas.length === 0 && <Card className="p-6 text-center text-mute text-sm">{t.sinCuentasRegistradas}</Card>}
                                 </div>
                             )}
                         </div>

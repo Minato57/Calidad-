@@ -143,29 +143,29 @@ export const CorreosNotificacion = () => {
                 <Sidebar />
                 <main id="contenido-principal" className="flex-1 p-8 max-w-5xl">
                     <h1 className="text-3xl font-extrabold text-ink mb-1">{t.correosNotificacionTitulo}</h1>
-                    <p className="text-sm text-mute mb-6">Gestiona los correos remitentes y envía notificaciones por email</p>
+                    <p className="text-sm text-mute mb-6">{t.correosNotificacionSub}</p>
 
                     {/* ═══════ Envío ═══════ */}
                     <Card className="p-6 mb-6">
                         <div className="flex items-center justify-between flex-wrap gap-4">
                             <div>
-                                <h2 className="text-lg font-bold text-ink">Envío de correos</h2>
+                                <h2 className="text-lg font-bold text-ink">{t.envioCorreos}</h2>
                                 <p className="text-sm text-mute mt-1">
                                     {cargando
                                         ? 'Cargando...'
                                         : pendientes > 0
-                                            ? <><span className="font-bold text-warning">{pendientes}</span> correo(s) pendiente(s) de enviar</>
-                                            : <span className="text-success-deep font-semibold">No hay correos pendientes</span>
+                                            ? <><span className="font-bold text-warning">{pendientes}</span> {t.correosPendientesDeEnviar}</>
+                                            : <span className="text-success-deep font-semibold">{t.noHayCorreosPendientes}</span>
                                     }
                                 </p>
-                                <p className="text-xs text-mute mt-1">El cron automático envía cada 2 minutos. Usa el botón para enviar ahora.</p>
+                                <p className="text-xs text-mute mt-1">{t.cronInfo}</p>
                             </div>
                             <Boton
                                 variante="primary"
                                 onClick={enviarAhora}
                                 disabled={enviando || pendientes === 0}
                             >
-                                {enviando ? 'Enviando...' : '📧 Enviar correos ahora'}
+                                {enviando ? t.enviandoCorreos : t.enviarCorreosAhora}
                             </Boton>
                         </div>
                         {msgEnvio && (
@@ -179,17 +179,17 @@ export const CorreosNotificacion = () => {
                         {/* ═══════ Formulario ═══════ */}
                         <Card className="p-6">
                             <h2 className="text-lg font-bold text-blue-deep mb-4">
-                                {editando ? 'Editar remitente' : 'Agregar remitente'}
+                                {editando ? t.editarRemitente : t.agregarRemitente}
                             </h2>
                             <form onSubmit={guardar} className="space-y-3">
                                 <Input label={t.correoElectronico} type="email" value={correo} onChange={(e) => setCorreo(e.target.value)} placeholder="notificaciones@gmail.com" required />
-                                <Input label={editando ? 'Contraseña de aplicación (dejar vacío para mantener)' : 'Contraseña de aplicación'} type="password" value={appPassword} onChange={(e) => setAppPassword(e.target.value)} placeholder="xxxx xxxx xxxx xxxx" required={!editando} />
-                                <Input label="Nombre visible en el correo (opcional)" value={nombreRemitente} onChange={(e) => setNombreRemitente(e.target.value)} placeholder="Centro de Salud San Genaro de Villa" />
+                                <Input label={t.contrasenaAplicacion} type="password" value={appPassword} onChange={(e) => setAppPassword(e.target.value)} placeholder="xxxx xxxx xxxx xxxx" required={!editando} />
+                                <Input label={t.nombreVisibleOpcional} value={nombreRemitente} onChange={(e) => setNombreRemitente(e.target.value)} placeholder="Centro de Salud San Genaro de Villa" />
                                 <div className="grid grid-cols-2 gap-3">
-                                    <Input label="Host SMTP (vacío = Gmail)" value={host} onChange={(e) => setHost(e.target.value)} placeholder="smtp.gmail.com" />
-                                    <Input label="Puerto (vacío = 587)" value={puerto} onChange={(e) => setPuerto(e.target.value.replace(/\D/g, ''))} placeholder="587" />
+                                    <Input label={t.hostSmtpOpcional} value={host} onChange={(e) => setHost(e.target.value)} placeholder="smtp.gmail.com" />
+                                    <Input label={t.puertoOpcional} value={puerto} onChange={(e) => setPuerto(e.target.value.replace(/\D/g, ''))} placeholder="587" />
                                 </div>
-                                <Input label="Prioridad (menor = se intenta primero)" value={prioridad} onChange={(e) => setPrioridad(e.target.value.replace(/\D/g, ''))} placeholder="0" />
+                                <Input label={t.prioridadInfo} value={prioridad} onChange={(e) => setPrioridad(e.target.value.replace(/\D/g, ''))} placeholder="0" />
 
                                 {msg && (
                                     <div className={`p-3 rounded-lg ${msg.ok ? 'bg-success-soft' : 'bg-danger-soft'}`}>
@@ -199,7 +199,7 @@ export const CorreosNotificacion = () => {
 
                                 <div className="flex gap-2">
                                     <Boton type="submit" fullWidth disabled={procesando}>
-                                        {procesando ? 'Guardando...' : editando ? 'Actualizar' : 'Agregar remitente'}
+                                        {procesando ? 'Guardando...' : editando ? t.guardarCambios : t.agregarRemitente}
                                     </Boton>
                                     {editando && (
                                         <Boton type="button" variante="secondary" onClick={limpiar}>{t.cancelar}</Boton>
@@ -210,11 +210,11 @@ export const CorreosNotificacion = () => {
 
                         {/* ═══════ Lista ═══════ */}
                         <div>
-                            <h2 className="text-lg font-bold text-ink mb-3">Remitentes configurados ({remitentes.length})</h2>
+                            <h2 className="text-lg font-bold text-ink mb-3">{t.remitentesConfigurados} ({remitentes.length})</h2>
                             {cargando ? (
                                 <Card className="p-6 text-center text-mute text-sm">Cargando...</Card>
                             ) : remitentes.length === 0 ? (
-                                <Card className="p-6 text-center text-mute text-sm">No hay remitentes configurados. Agrega uno para empezar a enviar correos.</Card>
+                                <Card className="p-6 text-center text-mute text-sm">{t.sinRemitentesConfigurados}</Card>
                             ) : (
                                 <div className="space-y-2">
                                     {remitentes.map(r => (
@@ -232,10 +232,10 @@ export const CorreosNotificacion = () => {
                                             </div>
                                             <div className="flex gap-2 mt-3 justify-end">
                                                 <Boton tamano="sm" variante={r.activo ? 'secondary' : 'success'} onClick={() => toggleActivo(r)}>
-                                                    {r.activo ? 'Desactivar' : 'Activar'}
+                                                    {r.activo ? t.desactivar : t.activar}
                                                 </Boton>
-                                                <Boton tamano="sm" variante="ghost" onClick={() => iniciarEdicion(r)}>Editar</Boton>
-                                                <Boton tamano="sm" variante="danger" onClick={() => eliminar(r.id_remitente)}>Eliminar</Boton>
+                                                <Boton tamano="sm" variante="ghost" onClick={() => iniciarEdicion(r)}>{t.editar}</Boton>
+                                                <Boton tamano="sm" variante="danger" onClick={() => eliminar(r.id_remitente)}>{t.eliminar}</Boton>
                                             </div>
                                         </Card>
                                     ))}
