@@ -25,6 +25,9 @@ export interface TraduccionEsquema {
     cerrarSesion: string;
     notificaciones: string;
     tituloCentro: string;
+    administracionRol: string;
+    medicoRol: string;
+    admisionRol: string;
 
     // Login & Auth
     iniciarSesion: string;
@@ -71,5 +74,30 @@ export interface TraduccionEsquema {
     cuentasAdmision: string;
     correos: string;
     reportes: string;
-}
 
+    // Reportes de citas
+    reportesCitas: string;
+    reportesCitasSub: string;
+    desde: string;
+    hasta: string;
+    especialidad: string;
+    medico: string;
+    estado: string;
+    todas: string;
+    todos: string;
+    generarReporte: string;
+    generandoReporte: string;
+    descargar: string;
+    descargarComo: string;
+    fecha: string;
+    hora: string;
+    paciente: string;
+    reservadoPor: string;
+    motivo: string;
+    total: string;
+    completadas: string;
+    canceladas: string;
+    faltas: string;
+    reservadas: string;
+    noCitasFiltros: string;
+}

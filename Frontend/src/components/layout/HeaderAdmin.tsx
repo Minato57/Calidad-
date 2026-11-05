@@ -4,18 +4,20 @@
 // =================================================================
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/useAuth';
+import { useTranslation } from '../../i18n';
 import { obtenerIniciales } from '../../utils/formatters';
 
 export const HeaderAdmin = () => {
     const navigate = useNavigate();
     const { user, logout } = useAuth();
+    const { t } = useTranslation();
 
     const cerrarSesion = async () => {
         await logout();
         navigate('/login', { replace: true });
     };
 
-    const badge = user?.rol === 'ADMIN' ? 'ADMINISTRACIÓN' : user?.rol === 'MEDICO' ? 'MÉDICO' : 'ADMISIÓN';
+    const badge = user?.rol === 'ADMIN' ? t.administracionRol : user?.rol === 'MEDICO' ? t.medicoRol : t.admisionRol;
 
     return (
         <header className="sticky top-0 z-40 bg-blue-deep">
@@ -29,7 +31,7 @@ export const HeaderAdmin = () => {
                             <path d="M12 7v4M10 9h4" stroke="#1E3A8A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
                     </div>
-                    <span className="text-sm font-extrabold text-white leading-tight">Centro Materno Infantil<br/>San Genaro de Villa</span>
+                    <span className="text-sm font-extrabold text-white leading-tight whitespace-pre-line">{t.tituloCentro}</span>
                     <span className="px-3 py-1 bg-sky-main rounded-full text-[10px] font-bold text-white tracking-wider">
                         {badge}
                     </span>
@@ -48,7 +50,7 @@ export const HeaderAdmin = () => {
                         onClick={cerrarSesion}
                         className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm font-semibold transition-colors"
                     >
-                        Cerrar sesión
+                        {t.cerrarSesion}
                     </button>
                 </div>
             </div>

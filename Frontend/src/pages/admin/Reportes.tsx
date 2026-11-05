@@ -11,18 +11,21 @@ import { adminApi } from '../../api/adminApi';
 import { Especialidad, Medico, ReporteCita, ReporteTotales } from '../../types';
 import { formatearFecha, formatearHora } from '../../utils/formatters';
 import { exportarReporteCSV, exportarReportePDF } from '../../utils/exportarReporte';
-
-const ESTADOS = [
-    { value: '', label: 'Todos' },
-    { value: 'RESERVADA', label: 'Reservada' },
-    { value: 'CONFIRMADA', label: 'Confirmada' },
-    { value: 'RECORDATORIO', label: 'Recordatorio' },
-    { value: 'COMPLETADA', label: 'Completada' },
-    { value: 'CANCELADA', label: 'Cancelada' },
-    { value: 'FALTA', label: 'Falta' },
-];
+import { useTranslation } from '../../i18n';
 
 export const Reportes = () => {
+    const { t } = useTranslation();
+
+    const estados = useMemo(() => [
+        { value: '', label: t.todos },
+        { value: 'RESERVADA', label: t.estadoReservada },
+        { value: 'CONFIRMADA', label: t.estadoConfirmada },
+        { value: 'RECORDATORIO', label: t.estadoRecordatorio },
+        { value: 'COMPLETADA', label: t.estadoCompletada },
+        { value: 'CANCELADA', label: t.estadoCancelada },
+        { value: 'FALTA', label: t.estadoFalta },
+    ], [t]);
+
     const [especialidades, setEspecialidades] = useState<Especialidad[]>([]);
     const [medicos, setMedicos]               = useState<Medico[]>([]);
 
@@ -83,12 +86,12 @@ export const Reportes = () => {
             // Texto de filtros para el encabezado del PDF (capturado al generar)
             const espNombre = idEsp
                 ? (especialidades.find(x => x.id_especialidad === Number(idEsp))?.nombre ?? idEsp)
-                : 'Todas';
+                : t.todas;
             const medObj = idMedico ? medicos.find(x => x.id_medico === Number(idMedico)) : null;
-            const medNombre = medObj ? `${medObj.nombres} ${medObj.apellidos}` : 'Todos';
-            const estLabel = ESTADOS.find(s => s.value === estado)?.label ?? 'Todos';
+            const medNombre = medObj ? `${medObj.nombres} ${medObj.apellidos}` : t.todos;
+            const estLabel = estados.find(s => s.value === estado)?.label ?? t.todos;
             setMetaTexto(
-                `Periodo: ${desde || 'inicio'} a ${hasta || 'hoy'}   |   Especialidad: ${espNombre}   |   Médico: ${medNombre}   |   Estado: ${estLabel}`,
+                `Periodo: ${desde || 'inicio'} a ${hasta || 'hoy'}   |   ${t.especialidad}: ${espNombre}   |   ${t.medico}: ${medNombre}   |   ${t.estado}: ${estLabel}`,
             );
         } catch {
             setError('No se pudo generar el reporte.');
@@ -109,47 +112,47 @@ export const Reportes = () => {
             <div className="flex">
                 <Sidebar />
                 <main id="contenido-principal" className="flex-1 p-8">
-                    <h1 className="text-3xl font-extrabold text-ink mb-1">Reportes de citas</h1>
-                    <p className="text-sm text-mute mb-6">Filtra y genera el reporte de citas del centro de salud</p>
+                    <h1 className="text-3xl font-extrabold text-ink mb-1">{t.reportesCitas}</h1>
+                    <p className="text-sm text-mute mb-6">{t.reportesCitasSub}</p>
 
                     {/* Filtros */}
                     <Card className="p-5 mb-6">
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
                             <div>
-                                <label className="block text-xs font-bold text-mute mb-1">Desde</label>
+                                <label className="block text-xs font-bold text-mute mb-1">{t.desde}</label>
                                 <input type="date" value={desde} onChange={(e) => setDesde(e.target.value)}
                                     className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm bg-white focus:outline-none focus:border-sky-main" />
                             </div>
                             <div>
-                                <label className="block text-xs font-bold text-mute mb-1">Hasta</label>
+                                <label className="block text-xs font-bold text-mute mb-1">{t.hasta}</label>
                                 <input type="date" value={hasta} onChange={(e) => setHasta(e.target.value)}
                                     className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm bg-white focus:outline-none focus:border-sky-main" />
                             </div>
                             <div>
-                                <label className="block text-xs font-bold text-mute mb-1">Especialidad</label>
+                                <label className="block text-xs font-bold text-mute mb-1">{t.especialidad}</label>
                                 <select value={idEsp} onChange={(e) => setIdEsp(e.target.value)}
                                     className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm bg-white focus:outline-none focus:border-sky-main">
-                                    <option value="">Todas</option>
+                                    <option value="">{t.todas}</option>
                                     {especialidades.map(e => (
                                         <option key={e.id_especialidad} value={e.id_especialidad}>{e.nombre}</option>
                                     ))}
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-xs font-bold text-mute mb-1">Médico</label>
+                                <label className="block text-xs font-bold text-mute mb-1">{t.medico}</label>
                                 <select value={idMedico} onChange={(e) => setIdMedico(e.target.value)}
                                     className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm bg-white focus:outline-none focus:border-sky-main">
-                                    <option value="">Todos</option>
+                                    <option value="">{t.todos}</option>
                                     {medicosFiltrados.map(m => (
                                         <option key={m.id_medico} value={m.id_medico}>{m.nombres} {m.apellidos}</option>
                                     ))}
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-xs font-bold text-mute mb-1">Estado</label>
+                                <label className="block text-xs font-bold text-mute mb-1">{t.estado}</label>
                                 <select value={estado} onChange={(e) => setEstado(e.target.value)}
                                     className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm bg-white focus:outline-none focus:border-sky-main">
-                                    {ESTADOS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                                    {estados.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                                 </select>
                             </div>
                         </div>
@@ -158,7 +161,7 @@ export const Reportes = () => {
 
                         <div className="mt-4">
                             <Boton onClick={generar} disabled={generando}>
-                                {generando ? 'Generando...' : 'Generar reporte'}
+                                {generando ? t.generandoReporte : t.generarReporte}
                             </Boton>
                         </div>
                     </Card>
@@ -166,25 +169,25 @@ export const Reportes = () => {
                     {/* Totales */}
                     {totales && (
                         <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
-                            <StatCard label="TOTAL" valor={totales.total} color="text-ink" />
-                            <StatCard label="COMPLETADAS" valor={totales.completadas} color="text-success" />
-                            <StatCard label="RESERVADAS" valor={totales.reservadas} color="text-sky-main" />
-                            <StatCard label="CANCELADAS" valor={totales.canceladas} color="text-danger" />
-                            <StatCard label="FALTAS" valor={totales.faltas} color="text-warning" />
+                            <StatCard label={t.total} valor={totales.total} color="text-ink" />
+                            <StatCard label={t.completadas} valor={totales.completadas} color="text-success" />
+                            <StatCard label={t.reservadas} valor={totales.reservadas} color="text-sky-main" />
+                            <StatCard label={t.canceladas} valor={totales.canceladas} color="text-danger" />
+                            <StatCard label={t.faltas} valor={totales.faltas} color="text-warning" />
                         </div>
                     )}
 
                     {/* Tabla */}
                     {yaGenero && citas.length === 0 && (
                         <Card className="p-12 text-center">
-                            <p className="text-mute text-sm">No se encontraron citas con esos filtros.</p>
+                            <p className="text-mute text-sm">{t.noCitasFiltros}</p>
                         </Card>
                     )}
 
                     {citas.length > 0 && (
                         <>
                         <div className="flex items-center justify-end gap-2 mb-3">
-                            <span className="text-xs font-bold text-mute">Descargar como:</span>
+                            <span className="text-xs font-bold text-mute">{t.descargarComo}</span>
                             <select
                                 value={formato}
                                 onChange={(e) => setFormato(e.target.value as 'PDF' | 'CSV')}
@@ -193,7 +196,7 @@ export const Reportes = () => {
                                 <option value="PDF">PDF</option>
                                 <option value="CSV">CSV</option>
                             </select>
-                            <Boton tamano="sm" onClick={descargar}>Descargar</Boton>
+                            <Boton tamano="sm" onClick={descargar}>{t.descargar}</Boton>
                         </div>
 
                         <Card className="p-0 overflow-hidden">
@@ -201,14 +204,14 @@ export const Reportes = () => {
                                 <table className="w-full text-sm">
                                     <thead>
                                         <tr className="bg-smoke text-left text-xs text-mute uppercase tracking-wider">
-                                            <th className="px-4 py-3 font-bold">Fecha</th>
-                                            <th className="px-4 py-3 font-bold">Hora</th>
-                                            <th className="px-4 py-3 font-bold">Especialidad</th>
-                                            <th className="px-4 py-3 font-bold">Médico</th>
-                                            <th className="px-4 py-3 font-bold">Paciente</th>
-                                            <th className="px-4 py-3 font-bold">Reservado por</th>
-                                            <th className="px-4 py-3 font-bold">Estado</th>
-                                            <th className="px-4 py-3 font-bold">Motivo</th>
+                                            <th className="px-4 py-3 font-bold">{t.fecha}</th>
+                                            <th className="px-4 py-3 font-bold">{t.hora}</th>
+                                            <th className="px-4 py-3 font-bold">{t.especialidad}</th>
+                                            <th className="px-4 py-3 font-bold">{t.medico}</th>
+                                            <th className="px-4 py-3 font-bold">{t.paciente}</th>
+                                            <th className="px-4 py-3 font-bold">{t.reservadoPor}</th>
+                                            <th className="px-4 py-3 font-bold">{t.estado}</th>
+                                            <th className="px-4 py-3 font-bold">{t.motivo}</th>
                                         </tr>
                                     </thead>
                                     <tbody>
