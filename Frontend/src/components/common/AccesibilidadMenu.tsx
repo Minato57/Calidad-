@@ -36,35 +36,35 @@ export const AccesibilidadMenu = () => {
         <>
             <a href="#contenido-principal" className="skip-link">Saltar al contenido</a>
 
-            <div className="fixed bottom-4 right-4 z-50">
+            <div className="fixed top-1/2 -translate-y-1/2 right-4 z-50 flex items-center gap-3">
                 {abierto && (
                     <div
                         role="dialog"
                         aria-label="Opciones de accesibilidad"
-                        className="mb-2 w-64 rounded-xl bg-white p-4 shadow-xl border border-gray-200"
+                        className="w-72 rounded-2xl bg-white p-5 shadow-2xl border border-gray-200"
                     >
-                        <p className="text-sm font-extrabold text-ink mb-3">Accesibilidad</p>
+                        <p className="text-base font-extrabold text-ink mb-3">Accesibilidad</p>
 
                         <div className="flex items-center justify-between mb-3">
-                            <span className="text-sm text-ink-soft">Tamaño de texto ({tam}%)</span>
+                            <span className="text-sm font-medium text-ink-soft">Tamaño de texto ({tam}%)</span>
                             <div className="flex gap-1">
                                 <button type="button" aria-label="Reducir texto" onClick={() => cambiarTam(-1)}
                                     disabled={tam === TAMANOS[0]}
-                                    className="w-8 h-8 rounded border border-gray-300 font-bold disabled:opacity-40">A-</button>
+                                    className="w-9 h-9 rounded-lg border border-gray-300 font-bold hover:bg-gray-50 disabled:opacity-40 transition-colors">A-</button>
                                 <button type="button" aria-label="Aumentar texto" onClick={() => cambiarTam(1)}
                                     disabled={tam === TAMANOS[TAMANOS.length - 1]}
-                                    className="w-8 h-8 rounded border border-gray-300 font-bold disabled:opacity-40">A+</button>
+                                    className="w-9 h-9 rounded-lg border border-gray-300 font-bold hover:bg-gray-50 disabled:opacity-40 transition-colors">A+</button>
                             </div>
                         </div>
 
-                        <label className="flex items-center justify-between text-sm text-ink-soft cursor-pointer">
+                        <label className="flex items-center justify-between text-sm font-medium text-ink-soft cursor-pointer py-1">
                             Alto contraste
                             <input type="checkbox" checked={contraste} onChange={(e) => setContraste(e.target.checked)}
-                                className="w-5 h-5" />
+                                className="w-5 h-5 accent-sky-main rounded cursor-pointer" />
                         </label>
 
                         <button type="button" onClick={() => { setTam(100); setContraste(false); }}
-                            className="mt-3 text-xs text-sky-main underline">Restablecer</button>
+                            className="mt-3 text-xs font-semibold text-sky-main hover:underline">Restablecer valores</button>
                     </div>
                 )}
 
@@ -73,7 +73,7 @@ export const AccesibilidadMenu = () => {
                     aria-label="Abrir opciones de accesibilidad"
                     aria-expanded={abierto}
                     onClick={() => setAbierto(v => !v)}
-                    className="w-12 h-12 rounded-full bg-sky-main text-white text-xl shadow-lg"
+                    className="w-16 h-16 rounded-full bg-sky-main hover:bg-sky-main/90 text-white text-3xl shadow-2xl flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95 focus:outline-none focus:ring-4 focus:ring-sky-main/40 cursor-pointer"
                 >
                     ♿
                 </button>
