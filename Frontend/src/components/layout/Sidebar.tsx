@@ -2,25 +2,28 @@
 // Sidebar de navegación del panel ADMIN.
 // =================================================================
 import { NavLink } from 'react-router-dom';
-
-const OPCIONES = [
-    { to: '/admin/especialidades',   icono: '📋', label: 'Especialidades' },
-    { to: '/admin/sanciones',        icono: '⚖️', label: 'Sanciones' },
-    { to: '/admin/cancelaciones',    icono: '🚫', label: 'Cancelaciones' },
-    { to: '/admin/cancelacion',      icono: '✕',  label: 'Cancelación masiva' },
-    { to: '/admin/cuentas-admision', icono: '👥', label: 'Cuentas Admisión' },
-    { to: '/admin/correos',          icono: '📧', label: 'Correos' },
-    { to: '/admin/reportes',         icono: '📊', label: 'Reportes' },
-];
+import { useTranslation } from '../../i18n';
 
 export const Sidebar = () => {
+    const { t } = useTranslation();
+
+    const opciones = [
+        { to: '/admin/especialidades',   icono: '📋', label: t.especialidades },
+        { to: '/admin/sanciones',        icono: '⚖️', label: t.sanciones },
+        { to: '/admin/cancelaciones',    icono: '🚫', label: t.cancelaciones },
+        { to: '/admin/cancelacion',      icono: '✕',  label: t.cancelacionMasiva },
+        { to: '/admin/cuentas-admision', icono: '👥', label: t.cuentasAdmision },
+        { to: '/admin/correos',          icono: '📧', label: t.correos },
+        { to: '/admin/reportes',         icono: '📊', label: t.reportes },
+    ];
+
     return (
         <aside className="w-60 bg-white border-r border-gray-100 min-h-[calc(100vh-60px)] p-4">
             <p className="text-[10px] font-bold text-mute-soft tracking-widest mb-3 px-2">
-                GESTIÓN DEL SISTEMA
+                {t.gestionSistema}
             </p>
             <nav className="space-y-1">
-                {OPCIONES.map(op => (
+                {opciones.map(op => (
                     <NavLink
                         key={op.to}
                         to={op.to}

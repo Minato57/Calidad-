@@ -9,6 +9,7 @@ import { Card } from '../common/Card';
 import { Boton } from '../common/Boton';
 import { adminApi } from '../../api/adminApi';
 import { GrupoEquidad, ReporteEquidad } from '../../types';
+import { useTranslation } from '../../i18n';
 
 interface Props {
     desde?: string;
@@ -51,6 +52,7 @@ const Tabla = ({ titulo, filas }: { titulo: string; filas: GrupoEquidad[] }) => 
 );
 
 export const EquidadPanel = ({ desde, hasta, idEspecialidad }: Props) => {
+    const { t } = useTranslation();
     const [data, setData] = useState<ReporteEquidad | null>(null);
     const [cargando, setCargando] = useState(false);
     const [error, setError] = useState('');
@@ -70,14 +72,14 @@ export const EquidadPanel = ({ desde, hasta, idEspecialidad }: Props) => {
     return (
         <section aria-labelledby="titulo-equidad" className="mt-10">
             <h2 id="titulo-equidad" className="text-2xl font-extrabold text-ink mb-1">
-                Equidad de acceso (ODS 10)
+                {t.ods10Titulo}
             </h2>
             <p className="text-sm text-mute mb-4">
-                Compara el acceso y el cumplimiento de citas entre grupos poblacionales usando los filtros de fecha y especialidad de arriba.
+                {t.ods10Descripcion}
             </p>
 
             <Boton onClick={generar} disabled={cargando}>
-                {cargando ? 'Generando...' : 'Generar reporte de equidad'}
+                {cargando ? 'Generando...' : t.generarReporteEquidad}
             </Boton>
             {error && <p role="alert" className="text-xs text-danger font-semibold mt-3">{error}</p>}
 

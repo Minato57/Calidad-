@@ -8,6 +8,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 
 import { useAuth } from '../../auth/useAuth';
+import { useTranslation } from '../../i18n';
 import { authApi } from '../../api/authApi';
 import { Boton } from '../../components/common/Boton';
 import { Input } from '../../components/common/Input';
@@ -23,6 +24,7 @@ const RUTA_POR_ROL: Record<Rol, string> = {
 export const Login = () => {
     const navigate = useNavigate();
     const { login } = useAuth();
+    const { t } = useTranslation();
 
     const [correo, setCorreo]         = useState('');
     const [contrasena, setContrasena] = useState('');
@@ -71,14 +73,14 @@ export const Login = () => {
 
                 {/* Marca */}
                 <div className="text-center mb-2">
-                    <h1 className="text-2xl font-extrabold text-blue-deep leading-tight">Centro de Salud Materno Infantil<br/>San Genaro de Villa</h1>
+                    <h1 className="text-2xl font-extrabold text-blue-deep leading-tight whitespace-pre-line">{t.tituloCentro}</h1>
                     <p className="text-xs text-mute mt-2">Tu salud, en tus manos</p>
                 </div>
 
                 <div className="h-px bg-gray-100 my-6" />
 
                 <div className="text-center mb-6">
-                    <h2 className="text-xl font-bold text-ink">Bienvenido de vuelta</h2>
+                    <h2 className="text-xl font-bold text-ink">{t.bienvenido}</h2>
                     <p className="text-xs text-mute mt-1">
                         Ingresa tus credenciales para continuar
                     </p>
@@ -86,7 +88,7 @@ export const Login = () => {
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <Input
-                        label="Correo electrónico"
+                        label={t.correoElectronico}
                         type="email"
                         value={correo}
                         onChange={(e) => setCorreo(e.target.value)}
@@ -97,7 +99,7 @@ export const Login = () => {
 
                     <div className="relative">
                         <Input
-                            label="Contraseña"
+                            label={t.contrasena}
                             type={verPass ? 'text' : 'password'}
                             value={contrasena}
                             onChange={(e) => setContrasena(e.target.value)}
@@ -139,18 +141,18 @@ export const Login = () => {
                         tamano="lg"
                         disabled={cargando}
                     >
-                        {cargando ? 'Ingresando...' : 'Iniciar sesión →'}
+                        {cargando ? t.ingresando : `${t.iniciarSesion} →`}
                     </Boton>
                 </form>
 
                 <div className="text-center mt-6 pt-6 border-t border-gray-100">
                     <p className="text-sm text-mute">
-                        ¿Eres nuevo aquí?{' '}
+                        {t.noTienesCuenta}{' '}
                         <Link
                             to="/registro"
                             className="text-sky-main hover:text-sky-deep font-bold"
                         >
-                            Crear cuenta
+                            {t.registroTitulo}
                         </Link>
                     </p>
                 </div>

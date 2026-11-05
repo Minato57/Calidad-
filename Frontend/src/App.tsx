@@ -6,13 +6,16 @@
 import { AuthProvider } from './auth/AuthContext';
 import { AppRouter } from './routes/AppRouter';
 import { AccesibilidadMenu } from './components/common/AccesibilidadMenu';
+import { LanguageProvider } from './i18n/LanguageContext';
 
 function App() {
     return (
-        <AuthProvider>
-            <AccesibilidadMenu />
-            <AppRouter />
-        </AuthProvider>
+        <LanguageProvider>
+            <AuthProvider>
+                <AccesibilidadMenu />
+                <AppRouter />
+            </AuthProvider>
+        </LanguageProvider>
     );
 }
 

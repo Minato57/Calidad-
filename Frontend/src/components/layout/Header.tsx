@@ -6,6 +6,7 @@ import { useState, useEffect, useRef } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 
 import { useAuth } from '../../auth/useAuth';
+import { useTranslation } from '../../i18n';
 import { obtenerIniciales } from '../../utils/formatters';
 import { notificacionesApi } from '../../api/notificacionesApi';
 import { DropdownBuzon } from './DropdownBuzon';
@@ -13,6 +14,7 @@ import { DropdownBuzon } from './DropdownBuzon';
 export const Header = () => {
     const navigate = useNavigate();
     const { user, logout } = useAuth();
+    const { t } = useTranslation();
 
     const [abiertoMenu, setAbiertoMenu]   = useState(false);
     const [abiertoBuzon, setAbiertoBuzon] = useState(false);
@@ -63,7 +65,7 @@ export const Header = () => {
                             <path d="M12 7v4M10 9h4" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
                     </div>
-                    <span className="text-sm font-extrabold text-blue-deep leading-tight">Centro Materno Infantil<br/>San Genaro de Villa</span>
+                    <span className="text-sm font-extrabold text-blue-deep leading-tight whitespace-pre-line">{t.tituloCentro}</span>
                 </div>
 
                 {/* Nav central */}
@@ -71,7 +73,7 @@ export const Header = () => {
                     <NavLink to="/paciente/inicio" className={linkClass}>
                         {({ isActive }) => (
                             <>
-                                Inicio
+                                {t.inicio}
                                 {isActive && <span className="absolute -bottom-0 left-0 right-0 h-0.5 bg-sky-main rounded-full" />}
                             </>
                         )}
@@ -79,7 +81,7 @@ export const Header = () => {
                     <NavLink to="/paciente/reservar" className={linkClass}>
                         {({ isActive }) => (
                             <>
-                                Reservar cita
+                                {t.reservarCita}
                                 {isActive && <span className="absolute -bottom-0 left-0 right-0 h-0.5 bg-sky-main rounded-full" />}
                             </>
                         )}
@@ -87,7 +89,7 @@ export const Header = () => {
                     <NavLink to="/paciente/mis-citas" className={linkClass}>
                         {({ isActive }) => (
                             <>
-                                Mis citas
+                                {t.misCitas}
                                 {isActive && <span className="absolute -bottom-0 left-0 right-0 h-0.5 bg-sky-main rounded-full" />}
                             </>
                         )}
@@ -101,7 +103,7 @@ export const Header = () => {
                         <button
                             onClick={() => setAbiertoBuzon(prev => !prev)}
                             className="relative w-10 h-10 rounded-full bg-smoke hover:bg-sky-soft flex items-center justify-center transition-colors"
-                            aria-label="Notificaciones"
+                            aria-label={t.notificaciones}
                         >
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
                                 <path d="M6 8a6 6 0 0 1 12 0v5l1.5 2.5h-15L6 13V8z"
@@ -147,20 +149,20 @@ export const Header = () => {
                                     onClick={() => { setAbiertoMenu(false); navigate('/paciente/perfil'); }}
                                     className="w-full px-4 py-3 text-left text-sm text-ink-soft hover:bg-sky-soft hover:text-sky-deep transition-colors flex items-center gap-3"
                                 >
-                                    <span>👤</span> Mi perfil
+                                    <span>👤</span> {t.miPerfil}
                                 </button>
                                 <button
                                     onClick={() => { setAbiertoMenu(false); navigate('/paciente/mis-citas'); }}
                                     className="w-full px-4 py-3 text-left text-sm text-ink-soft hover:bg-sky-soft hover:text-sky-deep transition-colors flex items-center gap-3"
                                 >
-                                    <span>📅</span> Mis citas
+                                    <span>📅</span> {t.misCitas}
                                 </button>
                                 <div className="h-px bg-gray-100" />
                                 <button
                                     onClick={cerrarSesion}
                                     className="w-full px-4 py-3 text-left text-sm text-danger hover:bg-danger-soft transition-colors flex items-center gap-3"
                                 >
-                                    <span>🚪</span> Cerrar sesión
+                                    <span>🚪</span> {t.cerrarSesion}
                                 </button>
                             </div>
                         )}
