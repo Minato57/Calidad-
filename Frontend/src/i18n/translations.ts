@@ -282,6 +282,16 @@ export const traducciones: Record<Idioma, TraduccionEsquema> = {
         programar: 'Programar',
         crearAcceso: 'Crear acceso',
 
+        
+        programarDisponibilidad: 'Programar disponibilidad',
+        programacionActual: 'PROGRAMACIÓN ACTUAL',
+        inhabilitar: 'Inhabilitar',
+        habilitar: 'Habilitar',
+        nuevaProgramacion: 'Nueva programación',
+        desdeQueFechaDeja: '¿Desde qué fecha deja de atender?',
+        desdeQueFechaVuelve: '¿Desde qué fecha vuelve a atender?',
+        cerrar: 'Cerrar',
+
         diasSemana: ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'],
         meses: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'],
     },
@@ -558,6 +568,16 @@ export const traducciones: Record<Idioma, TraduccionEsquema> = {
         medicosRegistrados: 'Registered doctors',
         programar: 'Schedule',
         crearAcceso: 'Create access',
+
+        
+        programarDisponibilidad: 'Schedule availability',
+        programacionActual: 'CURRENT SCHEDULE',
+        inhabilitar: 'Disable',
+        habilitar: 'Enable',
+        nuevaProgramacion: 'New schedule',
+        desdeQueFechaDeja: 'From what date will service stop?',
+        desdeQueFechaVuelve: 'From what date will service resume?',
+        cerrar: 'Close',
 
         diasSemana: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
         meses: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
@@ -836,6 +856,16 @@ export const traducciones: Record<Idioma, TraduccionEsquema> = {
         programar: 'Pachanchay',
         crearAcceso: 'Yaykuyta kamariy',
 
+        
+        programarDisponibilidad: 'Kachkay pachata allichay',
+        programacionActual: 'KUNAN PACHANCHASQA',
+        inhabilitar: 'Sayachiy',
+        habilitar: 'Kachariy',
+        nuevaProgramacion: 'Musuq pachanchay',
+        desdeQueFechaDeja: '¿Mayqin p\'unchawmantam manaña hampinqa?',
+        desdeQueFechaVuelve: '¿Mayqin p\'unchawmantam kaqmanta hampinqa?',
+        cerrar: 'Wisq\'ay',
+
         diasSemana: ['Intichaw', 'Killachaw', 'Atipachaw', 'Qoyllurchaw', 'Illapachaw', 'Ch\'askachaw', 'K\'uychichaw'],
         meses: ['Qhapaq Raymi', 'Hatun Puquy', 'Pawqar Waray', 'Ayriway', 'Aymuray', 'Inti Raymi', 'Anta Sitwa', 'Qhapaq Sitwa', 'Tarpuy Killa', 'Kantaray', 'Ayamarq\'a', 'Qhapaq Raymi'],
     },
@@ -1112,6 +1142,16 @@ export const traducciones: Record<Idioma, TraduccionEsquema> = {
         medicosRegistrados: 'Qillqata qullirinaka',
         programar: 'Pachachaña',
         crearAcceso: 'Mantaña luraña',
+
+        
+        programarDisponibilidad: 'Utjir pacha askichaña',
+        programacionActual: 'JICHHA PACHACHATA',
+        inhabilitar: 'Janiw saña',
+        habilitar: 'Katuqaña',
+        nuevaProgramacion: 'Machaqa pachachaña',
+        desdeQueFechaDeja: '¿Kuna urutpacha janis qullxani?',
+        desdeQueFechaVuelve: '¿Kuna urutpacha wasitampi qullxani?',
+        cerrar: 'Jiskt\'antaña',
 
         diasSemana: ['Willka uru', 'Phaxsi uru', 'Saxra uru', 'Pacha uru', 'Illapa uru', 'Ñanqha uru', 'Samar uru'],
         meses: ['Chinuqa', 'Anata', 'Achuqa', 'Qasawi', 'Llamayu', 'Jach\'a mara', 'Puriy', 'Thaya phaxsi', 'Taqsaw phaxsi', 'Taypi sata', 'Lapaka', 'Jallu qallta'],

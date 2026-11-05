@@ -291,6 +291,17 @@ export interface TraduccionEsquema {
     programar: string;
     crearAcceso: string;
 
+    
+    // Modal Programar
+    programarDisponibilidad: string;
+    programacionActual: string;
+    inhabilitar: string;
+    habilitar: string;
+    nuevaProgramacion: string;
+    desdeQueFechaDeja: string;
+    desdeQueFechaVuelve: string;
+    cerrar: string;
+
     diasSemana: string[];
     meses: string[];
 }

@@ -209,7 +209,7 @@ export const Especialidades = () => {
                                     <select value={espMed} onChange={(e) => setEspMed(Number(e.target.value))}
                                         className="w-full px-4 py-3 text-sm bg-white rounded-lg border border-gray-200 focus:border-sky-main outline-none">
                                         <option value={0}>{t.seleccionaPuntos}</option>
-                                        {activas.map(e => <option key={e.id_especialidad} value={e.id_especialidad}>{e.nombre}</option>)}
+                                        {activas.map(e => <option key={e.id_especialidad} value={e.id_especialidad}>{t.especialidadesTraducidas[e.nombre]?.nombre ?? e.nombre}</option>)}
                                     </select>
                                 </div>
                                 <label className="flex items-center gap-2 text-xs font-semibold text-ink-soft cursor-pointer">
@@ -239,15 +239,15 @@ export const Especialidades = () => {
                                 <Card key={e.id_especialidad} className="p-4 flex items-center justify-between">
                                     <div>
                                         <div className="flex items-center gap-2">
-                                            <h3 className="font-bold text-ink text-sm">{e.nombre}</h3>
+                                            <h3 className="font-bold text-ink text-sm">{t.especialidadesTraducidas[e.nombre]?.nombre ?? e.nombre}</h3>
                                             <Badge variante={e.estado === 'ACTIVA' ? 'success' : 'gray'}>{e.estado}</Badge>
                                             {e.fecha_inhabilitacion && <span className="text-[10px] text-danger font-semibold">⏸ inhab. {e.fecha_inhabilitacion}</span>}
                                             {e.fecha_habilitacion && <span className="text-[10px] text-success font-semibold">▶ hab. {e.fecha_habilitacion}</span>}
                                         </div>
-                                        <p className="text-xs text-mute mt-0.5">{e.descripcion}</p>
+                                        <p className="text-xs text-mute mt-0.5">{t.especialidadesTraducidas[e.nombre]?.descripcion ?? e.descripcion}</p>
                                     </div>
                                     <Boton tamano="sm" variante="secondary" onClick={() => setProgramar({ tipo: 'especialidad', id: e.id_especialidad, nombre: e.nombre, fechaInhab: e.fecha_inhabilitacion ?? null, fechaHab: e.fecha_habilitacion ?? null })}>
-                                        Programar
+                                        {t.programar}
                                     </Boton>
                                 </Card>
                             ))}
@@ -266,14 +266,14 @@ export const Especialidades = () => {
                                         {m.fecha_inhabilitacion && <span className="text-[10px] text-danger font-semibold">⏸ inhab. {m.fecha_inhabilitacion}</span>}
                                         {m.fecha_habilitacion && <span className="text-[10px] text-success font-semibold">▶ hab. {m.fecha_habilitacion}</span>}
                                     </div>
-                                    <p className="text-xs text-mute">{m.especialidad}</p>
+                                    <p className="text-xs text-mute">{t.especialidadesTraducidas[m.especialidad]?.nombre ?? m.especialidad}</p>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     {m.tiene_cuenta
                                         ? <Badge variante="success">Con acceso{m.cmp ? ` · CMP ${m.cmp}` : ''}</Badge>
                                         : <Boton tamano="sm" variante="secondary" onClick={() => { setCuentaPara(m); setMsgCuenta(null); }}>{t.crearAcceso}</Boton>}
                                 <Boton tamano="sm" variante="secondary" onClick={() => setProgramar({ tipo: 'medico', id: m.id_medico, nombre: `Dr. ${m.nombres} ${m.apellidos}`, fechaInhab: m.fecha_inhabilitacion ?? null, fechaHab: m.fecha_habilitacion ?? null })}>
-                                    Programar
+                                    {t.programar}
                                 </Boton>
                                 </div>
                             </Card>
