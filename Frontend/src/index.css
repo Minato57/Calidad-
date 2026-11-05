@@ -1,0 +1,76 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+    margin: 0;
+    font-family: 'Inter', 'Segoe UI', sans-serif;
+    background-color: #F8FAFC;
+    color: #0F172A;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* Scrollbar custom */
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+::-webkit-scrollbar-track {
+    background: #F1F5F9;
+}
+::-webkit-scrollbar-thumb {
+    background: #CBD5E1;
+    border-radius: 5px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #94A3B8;
+}
+
+/* Sin scroll horizontal */
+html, body {
+    overflow-x: hidden;
+}
+
+/* Inputs sin spin en number */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+/* ===== ODS 10 – Accesibilidad ===== */
+.skip-link {
+    position: absolute;
+    left: -9999px;
+    top: 0;
+    z-index: 100;
+    background: #0F172A;
+    color: #fff;
+    padding: 0.75rem 1rem;
+    border-radius: 0 0 8px 0;
+}
+.skip-link:focus { left: 0; }
+
+:focus-visible {
+    outline: 3px solid #2563EB;
+    outline-offset: 2px;
+}
+
+.sr-only-fallback { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
+
+/* Alto contraste */
+html.alto-contraste body { background: #000; color: #fff; }
+html.alto-contraste .bg-white,
+html.alto-contraste .bg-smoke { background-color: #000 !important; }
+html.alto-contraste .text-mute,
+html.alto-contraste .text-ink,
+html.alto-contraste .text-ink-soft { color: #fff !important; }
+html.alto-contraste .border-gray-100,
+html.alto-contraste .border-gray-200,
+html.alto-contraste .border-gray-300 { border-color: #fff !important; }
+html.alto-contraste a { color: #FFD60A; }
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
