@@ -8,6 +8,7 @@ import { Card } from '../../components/common/Card';
 import { Boton } from '../../components/common/Boton';
 import { BadgeEstadoCita } from '../../components/common/Badge';
 
+import { useTranslation } from '../../i18n';
 import { admisionApi } from '../../api/admisionApi';
 import { CitaDelDia } from '../../types';
 import { formatearFecha, formatearHora, obtenerIniciales } from '../../utils/formatters';
@@ -15,6 +16,7 @@ import { formatearFecha, formatearHora, obtenerIniciales } from '../../utils/for
 const POR_PAGINA = 8;
 
 export const CitasHoy = () => {
+    const { t } = useTranslation();
     const hoy = new Date().toISOString().slice(0, 10);
     const [fecha, setFecha]       = useState(hoy);
     const [citas, setCitas]       = useState<CitaDelDia[]>([]);
@@ -99,20 +101,20 @@ export const CitasHoy = () => {
                 {/* Título + stats */}
                 <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
                     <div>
-                        <h1 className="text-3xl font-extrabold text-ink">Citas del día</h1>
+                        <h1 className="text-3xl font-extrabold text-ink">{t.reportesCitas}</h1>
                         <p className="text-sm text-mute mt-1 capitalize">{formatearFecha(fecha)}</p>
                     </div>
                     <div className="flex gap-3">
-                        <StatMini label="ASISTIERON" valor={asistieron} color="text-success" />
-                        <StatMini label="FALTARON" valor={faltaron} color="text-danger" />
-                        <StatMini label="PENDIENTES" valor={pendientes} color="text-sky-main" />
+                        <StatMini label={t.completadas} valor={asistieron} color="text-success" />
+                        <StatMini label={t.faltas} valor={faltaron} color="text-danger" />
+                        <StatMini label={t.estadoReservada.toUpperCase()} valor={pendientes} color="text-sky-main" />
                     </div>
                 </div>
 
                 {/* Filtros: fecha + especialidad */}
                 <Card className="p-4 mb-6">
                     <div className="flex flex-wrap items-center gap-3">
-                        <label className="text-sm font-semibold text-ink-soft">Fecha:</label>
+                        <label className="text-sm font-semibold text-ink-soft">{t.fecha}:</label>
                         <input
                             type="date"
                             value={fecha}
@@ -121,13 +123,13 @@ export const CitasHoy = () => {
                         />
                         <Boton tamano="sm" variante="secondary" onClick={() => setFecha(hoy)}>Hoy</Boton>
 
-                        <label className="text-sm font-semibold text-ink-soft ml-2">Especialidad:</label>
+                        <label className="text-sm font-semibold text-ink-soft ml-2">{t.especialidad}:</label>
                         <select
                             value={filtroEsp}
                             onChange={(e) => setFiltroEsp(e.target.value)}
                             className="px-4 py-2 text-sm bg-white rounded-lg border border-gray-200 focus:border-sky-main outline-none"
                         >
-                            <option value="">Todas</option>
+                            <option value="">{t.todas}</option>
                             {especialidadesUnicas.map(esp => (
                                 <option key={esp} value={esp}>{esp}</option>
                             ))}
@@ -137,9 +139,9 @@ export const CitasHoy = () => {
 
                 {/* Tabla */}
                 {cargando ? (
-                    <Card className="p-8 text-center"><p className="text-mute text-sm">Cargando citas...</p></Card>
+                    <Card className="p-8 text-center"><p className="text-mute text-sm">{t.cargandoInformacion}</p></Card>
                 ) : filtradas.length === 0 ? (
-                    <Card className="p-12 text-center"><p className="text-mute text-sm">No hay citas {filtroEsp ? 'de esa especialidad' : 'para esta fecha'}</p></Card>
+                    <Card className="p-12 text-center"><p className="text-mute text-sm">{t.noCitasFiltros}</p></Card>
                 ) : (
                     <div className="space-y-3">
                         {visibles.map(c => {
@@ -222,7 +224,7 @@ export const CitasHoy = () => {
                             disabled={paginaSegura <= 1}
                             onClick={() => setPagina(p => Math.max(1, p - 1))}
                         >
-                            ← Anterior
+                            ←
                         </Boton>
                         <span className="text-sm font-semibold text-mute">
                             Página {paginaSegura} de {totalPaginas}
@@ -233,7 +235,7 @@ export const CitasHoy = () => {
                             disabled={paginaSegura >= totalPaginas}
                             onClick={() => setPagina(p => Math.min(totalPaginas, p + 1))}
                         >
-                            Siguiente →
+                            →
                         </Boton>
                     </div>
                 )}

@@ -1,9 +1,5 @@
 // =================================================================
 // Mis Citas — Historial del paciente con filtros y paginación.
-//   - Filtro por estado (Todas / Próximas / Completadas / Faltas / Canceladas)
-//   - Filtro por especialidad
-//   - Filtro por rango de fechas (desde / hasta)
-//   - Paginación (6 por página)
 // =================================================================
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -13,6 +9,7 @@ import { Card } from '../../components/common/Card';
 import { Boton } from '../../components/common/Boton';
 import { BadgeEstadoCita } from '../../components/common/Badge';
 
+import { useTranslation } from '../../i18n';
 import { citasApi } from '../../api/citasApi';
 import { CitaConDetalles, EstadoCita } from '../../types';
 import { formatearFecha, formatearHora, diasDesdeHoy } from '../../utils/formatters';
@@ -23,6 +20,8 @@ const POR_PAGINA = 6;
 
 export const MisCitas = () => {
     const navigate = useNavigate();
+    const { t } = useTranslation();
+
     const [citas, setCitas]       = useState<CitaConDetalles[]>([]);
     const [cargando, setCargando] = useState(true);
     const [cancelandoId, setCancelandoId] = useState<number | null>(null);
@@ -65,7 +64,7 @@ export const MisCitas = () => {
             const res: any = await citasApi.cancelar(idCita);
             await cargar();
             setResultado({
-                mensaje: res.mensaje ?? 'Cita cancelada correctamente',
+                mensaje: res.mensaje ?? t.citaCancelada,
                 bloqueada: !!res.cuentaBloqueada,
                 sancionada: !!res.sancionada,
             });
@@ -77,15 +76,20 @@ export const MisCitas = () => {
     };
 
     // Especialidades presentes en las citas (para el dropdown)
-    const especialidadesUnicas = useMemo(
-        () => Array.from(new Set(citas.map(c => c.especialidad).filter(Boolean))).sort() as string[],
-        [citas],
-    );
+    const especialidadesUnicas = useMemo(() => {
+        const set = new Set<string>();
+        citas.forEach(c => { if (c.especialidad) set.add(c.especialidad); });
+        return Array.from(set).sort();
+    }, [citas]);
 
-    // Aplica TODOS los filtros
+    // Filtrado
     const filtradas = useMemo(() => {
         return citas.filter(c => {
-            if (filtro !== 'TODAS' && c.estado !== filtro) return false;
+            if (filtro === 'RESERVADA') {
+                if (c.estado !== 'RESERVADA' && c.estado !== 'CONFIRMADA' && c.estado !== 'RECORDATORIO') return false;
+            } else if (filtro !== 'TODAS') {
+                if (c.estado !== filtro) return false;
+            }
             if (filtroEsp && c.especialidad !== filtroEsp) return false;
             if (fechaDesde && (!c.fecha || c.fecha < fechaDesde)) return false;
             if (fechaHasta && (!c.fecha || c.fecha > fechaHasta)) return false;
@@ -105,11 +109,11 @@ export const MisCitas = () => {
     const hayFiltrosActivos = filtro !== 'TODAS' || !!filtroEsp || !!fechaDesde || !!fechaHasta;
 
     const filtros: { id: Filtro; label: string }[] = [
-        { id: 'TODAS', label: 'Todas' },
-        { id: 'RESERVADA', label: 'Próximas' },
-        { id: 'COMPLETADA', label: 'Completadas' },
-        { id: 'FALTA', label: 'Faltas' },
-        { id: 'CANCELADA', label: 'Canceladas' },
+        { id: 'TODAS', label: t.filtroTodas },
+        { id: 'RESERVADA', label: t.filtroProximas },
+        { id: 'COMPLETADA', label: t.filtroCompletadas },
+        { id: 'FALTA', label: t.filtroFaltas },
+        { id: 'CANCELADA', label: t.filtroCanceladas },
     ];
 
     const esCancelable = (estado: EstadoCita) =>
@@ -122,10 +126,10 @@ export const MisCitas = () => {
             <main id="contenido-principal" className="max-w-6xl mx-auto px-6 py-8">
                 <div className="flex items-start justify-between mb-6">
                     <div>
-                        <h1 className="text-3xl font-extrabold text-ink">Mis citas</h1>
-                        <p className="text-sm text-mute mt-1">Historial completo de tus citas médicas</p>
+                        <h1 className="text-3xl font-extrabold text-ink">{t.misCitasTitulo}</h1>
+                        <p className="text-sm text-mute mt-1">{t.misCitasSub}</p>
                     </div>
-                    <Boton onClick={() => navigate('/paciente/reservar')}>+ Nueva cita</Boton>
+                    <Boton onClick={() => navigate('/paciente/reservar')}>+ {t.agendarNuevaCita}</Boton>
                 </div>
 
                 {/* Filtros por estado */}
@@ -134,7 +138,7 @@ export const MisCitas = () => {
                         <button
                             key={f.id}
                             onClick={() => setFiltro(f.id)}
-                            className={`px-4 py-2 rounded-full text-xs font-bold transition-all
+                            className={`px-4 py-2 rounded-full text-xs font-bold transition-all cursor-pointer
                                 ${filtro === f.id ? 'bg-sky-main text-white shadow-card' : 'bg-white text-mute hover:bg-sky-soft hover:text-sky-deep'}`}
                         >
                             {f.label}
@@ -146,20 +150,20 @@ export const MisCitas = () => {
                 <Card className="p-4 mb-6">
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
                         <div>
-                            <label className="block text-xs font-bold text-mute mb-1">Especialidad</label>
+                            <label className="block text-xs font-bold text-mute mb-1">{t.especialidad}</label>
                             <select
                                 value={filtroEsp}
                                 onChange={(e) => setFiltroEsp(e.target.value)}
                                 className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm text-ink-soft bg-white focus:outline-none focus:border-sky-main"
                             >
-                                <option value="">Todas</option>
+                                <option value="">{t.todas}</option>
                                 {especialidadesUnicas.map(esp => (
                                     <option key={esp} value={esp}>{esp}</option>
                                 ))}
                             </select>
                         </div>
                         <div>
-                            <label className="block text-xs font-bold text-mute mb-1">Desde</label>
+                            <label className="block text-xs font-bold text-mute mb-1">{t.desde}</label>
                             <input
                                 type="date"
                                 value={fechaDesde}
@@ -168,7 +172,7 @@ export const MisCitas = () => {
                             />
                         </div>
                         <div>
-                            <label className="block text-xs font-bold text-mute mb-1">Hasta</label>
+                            <label className="block text-xs font-bold text-mute mb-1">{t.hasta}</label>
                             <input
                                 type="date"
                                 value={fechaHasta}
@@ -177,23 +181,23 @@ export const MisCitas = () => {
                             />
                         </div>
                         <Boton variante="secondary" onClick={limpiarFiltros} disabled={!hayFiltrosActivos}>
-                            Limpiar filtros
+                            Limpiar
                         </Boton>
                     </div>
                 </Card>
 
                 {cargando && (
-                    <Card className="p-8 text-center"><p className="text-mute text-sm">Cargando tus citas...</p></Card>
+                    <Card className="p-8 text-center"><p className="text-mute text-sm">{t.cargandoInformacion}</p></Card>
                 )}
 
                 {!cargando && filtradas.length === 0 && (
                     <Card className="p-12 text-center">
                         <p className="text-mute text-sm mb-4">
-                            No tienes citas {hayFiltrosActivos ? 'que coincidan con los filtros' : 'registradas'}
+                            {t.sinCitasRegistradas}
                         </p>
                         {hayFiltrosActivos
                             ? <Boton variante="secondary" onClick={limpiarFiltros}>Quitar filtros</Boton>
-                            : <Boton onClick={() => navigate('/paciente/reservar')}>Agendar mi primera cita</Boton>
+                            : <Boton onClick={() => navigate('/paciente/reservar')}>{t.agendarMiPrimeraCita}</Boton>
                         }
                     </Card>
                 )}
@@ -201,7 +205,7 @@ export const MisCitas = () => {
                 {!cargando && filtradas.length > 0 && (
                     <>
                         <p className="text-xs text-mute mb-3">
-                            {filtradas.length} cita(s) encontrada(s)
+                            {filtradas.length} {t.misCitas.toLowerCase()}
                         </p>
 
                         <div className="space-y-3">
@@ -218,7 +222,7 @@ export const MisCitas = () => {
                                         <div className="flex-1 min-w-[200px]">
                                             <div className="flex items-center gap-2 mb-1">
                                                 <h3 className="font-bold text-ink text-base">
-                                                    {cita.especialidad ?? 'Especialidad'}
+                                                    {cita.especialidad ?? t.especialidad}
                                                 </h3>
                                                 <BadgeEstadoCita estado={cita.estado} />
                                             </div>
@@ -229,7 +233,7 @@ export const MisCitas = () => {
                                             )}
                                             {cita.es_para_menor && cita.dependiente_nombres && (
                                                 <p className="text-sm text-sky-main font-bold mt-0.5">
-                                                    Paciente: {cita.dependiente_nombres} {cita.dependiente_apellidos}
+                                                    {t.paciente}: {cita.dependiente_nombres} {cita.dependiente_apellidos}
                                                     {cita.dependiente_parentesco && (
                                                         <span className="text-mute font-normal">
                                                             {' '}({cita.dependiente_parentesco})
@@ -257,20 +261,20 @@ export const MisCitas = () => {
                                     {cita.motivo && (
                                         <div className="mt-3 pt-3 border-t border-gray-100">
                                             <p className="text-xs text-mute">
-                                                <span className="font-bold">Motivo:</span> {cita.motivo}
+                                                <span className="font-bold">{t.motivo}:</span> {cita.motivo}
                                             </p>
                                         </div>
                                     )}
 
                                     {esCancelable(cita.estado) && (
-                                        <div className="mt-3 flex justify-end">
+                                        <div className="mt-3 pt-3 border-t border-gray-100 flex justify-end">
                                             <Boton
-                                                variante="danger"
                                                 tamano="sm"
+                                                variante="danger"
                                                 disabled={cancelandoId === cita.id_cita}
                                                 onClick={() => setCitaAConfirmar(cita.id_cita)}
                                             >
-                                                {cancelandoId === cita.id_cita ? 'Cancelando...' : 'Cancelar cita'}
+                                                {cancelandoId === cita.id_cita ? t.cancelandoCita : t.cancelarCita}
                                             </Boton>
                                         </div>
                                     )}
@@ -278,27 +282,27 @@ export const MisCitas = () => {
                             ))}
                         </div>
 
-                        {/* Controles de paginación */}
+                        {/* Paginación */}
                         {totalPaginas > 1 && (
-                            <div className="flex items-center justify-center gap-3 mt-6">
+                            <div className="flex items-center justify-center gap-2 mt-6">
                                 <Boton
-                                    variante="secondary"
                                     tamano="sm"
-                                    disabled={paginaSegura <= 1}
+                                    variante="secondary"
+                                    disabled={paginaSegura === 1}
                                     onClick={() => setPagina(p => Math.max(1, p - 1))}
                                 >
-                                    ← Anterior
+                                    ←
                                 </Boton>
-                                <span className="text-sm font-semibold text-mute">
-                                    Página {paginaSegura} de {totalPaginas}
+                                <span className="text-xs text-mute font-semibold px-2">
+                                    {paginaSegura} / {totalPaginas}
                                 </span>
                                 <Boton
-                                    variante="secondary"
                                     tamano="sm"
-                                    disabled={paginaSegura >= totalPaginas}
+                                    variante="secondary"
+                                    disabled={paginaSegura === totalPaginas}
                                     onClick={() => setPagina(p => Math.min(totalPaginas, p + 1))}
                                 >
-                                    Siguiente →
+                                    →
                                 </Boton>
                             </div>
                         )}
@@ -313,19 +317,19 @@ export const MisCitas = () => {
                         <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-warning-soft flex items-center justify-center">
                             <span className="text-2xl">⚠️</span>
                         </div>
-                        <h3 className="text-lg font-bold text-ink text-center mb-2">¿Cancelar esta cita?</h3>
+                        <h3 className="text-lg font-bold text-ink text-center mb-2">{t.cancelarEstaCita}</h3>
                         <p className="text-sm text-mute text-center mb-2">
-                            Si cancelas con menos de 24 horas de anticipación, contará como una cancelación tardía.
+                            {t.avisoCancelacionTardia}
                         </p>
                         <p className="text-xs text-warning text-center mb-5 font-semibold">
-                            Acumular cancelaciones tardías puede suspender tu cuenta.
+                            {t.avisoSuspensionCuenta}
                         </p>
                         <div className="flex gap-3">
                             <Boton variante="secondary" fullWidth onClick={() => setCitaAConfirmar(null)}>
-                                No, mantener
+                                {t.noMantener}
                             </Boton>
                             <Boton variante="danger" fullWidth onClick={confirmarCancelacion}>
-                                Sí, cancelar
+                                {t.siCancelar}
                             </Boton>
                         </div>
                     </div>
@@ -341,10 +345,10 @@ export const MisCitas = () => {
                             <span className="text-2xl">{resultado.bloqueada ? '🔒' : resultado.sancionada ? '⚠️' : '✓'}</span>
                         </div>
                         <h3 className="text-lg font-bold text-ink text-center mb-2">
-                            {resultado.bloqueada ? 'Cuenta suspendida' : 'Cita cancelada'}
+                            {resultado.bloqueada ? t.cuentaSuspendida : t.citaCancelada}
                         </h3>
                         <p className="text-sm text-mute text-center mb-5">{resultado.mensaje}</p>
-                        <Boton fullWidth onClick={() => setResultado(null)}>Entendido</Boton>
+                        <Boton fullWidth onClick={() => setResultado(null)}>{t.entendido}</Boton>
                     </div>
                 </div>
             )}

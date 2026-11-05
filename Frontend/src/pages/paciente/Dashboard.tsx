@@ -10,6 +10,7 @@ import { Card } from '../../components/common/Card';
 import { Badge } from '../../components/common/Badge';
 
 import { useAuth } from '../../auth/useAuth';
+import { useTranslation } from '../../i18n';
 import { citasApi } from '../../api/citasApi';
 import { CitaConDetalles } from '../../types';
 import {
@@ -22,6 +23,7 @@ import {
 export const Dashboard = () => {
     const navigate = useNavigate();
     const { user } = useAuth();
+    const { t } = useTranslation();
 
     const [proximaCita, setProximaCita] = useState<CitaConDetalles | null>(null);
     const [cargando, setCargando]       = useState(true);
@@ -61,7 +63,7 @@ export const Dashboard = () => {
             const res: any = await citasApi.cancelar(proximaCita.id_cita);
             await cargarCitas();
             setResultado({
-                mensaje: res.mensaje ?? 'Cita cancelada correctamente',
+                mensaje: res.mensaje ?? t.citaCancelada,
                 bloqueada: !!res.cuentaBloqueada,
                 sancionada: !!res.sancionada,
             });
@@ -72,11 +74,11 @@ export const Dashboard = () => {
         }
     };
 
-    const hoy = new Date().toLocaleDateString('es-PE', {
-        weekday: 'long',
-        day: 'numeric',
-        month: 'long',
-    });
+    const now = new Date();
+    const diaNombre = t.diasSemana[now.getDay()];
+    const diaNum = now.getDate();
+    const mesNombre = t.meses[now.getMonth()];
+    const hoy = `${diaNombre}, ${diaNum} de ${mesNombre}`;
 
     return (
         <div className="min-h-screen bg-smoke">
@@ -86,10 +88,10 @@ export const Dashboard = () => {
                 {/* Saludo */}
                 <div className="mb-8">
                     <h1 className="text-3xl font-extrabold text-ink">
-                        ¡Hola, {user?.nombres}! <span>👋</span>
+                        {t.hola}{user?.nombres}! <span>👋</span>
                     </h1>
                     <p className="text-sm text-mute mt-1">
-                        Cuidamos tu salud, hoy es <span className="text-blue-deep font-bold capitalize">{hoy}</span>
+                        {t.cuidamosTuSalud} <span className="text-blue-deep font-bold capitalize">{hoy}</span>
                     </p>
                 </div>
 
@@ -101,28 +103,28 @@ export const Dashboard = () => {
 
                     <div className="relative z-10 max-w-3xl">
                         <p className="text-xs font-bold text-white opacity-90 tracking-[0.3em] mb-4">
-                            RESERVA TU CITA EN SEGUNDOS
+                            {t.reservaEnSegundos}
                         </p>
                         <h2 className="text-4xl md:text-5xl font-extrabold text-white leading-tight mb-3">
-                            ¿Necesitas atención<br />médica?
+                            {t.necesitasAtencionMedica}
                         </h2>
                         <p className="text-base text-white opacity-95 mb-8">
-                            Agenda con el especialista que necesites, disponible 24/7
+                            {t.agendaConEspecialista}
                         </p>
                         <div className="flex flex-wrap items-center gap-3">
                             <button
                                 onClick={() => navigate('/paciente/reservar')}
-                                className="inline-flex items-center gap-2 px-7 py-4 bg-white hover:bg-smoke rounded-xl shadow-lg font-extrabold text-sky-deep transition-all"
+                                className="inline-flex items-center gap-2 px-7 py-4 bg-white hover:bg-smoke rounded-xl shadow-lg font-extrabold text-sky-deep transition-all cursor-pointer"
                             >
                                 <span className="text-xl">+</span>
-                                <span>Agendar nueva cita</span>
+                                <span>{t.agendarNuevaCita}</span>
                                 <span>→</span>
                             </button>
                             <span className="inline-flex items-center gap-1 px-4 py-2 bg-white/15 backdrop-blur rounded-full text-white text-xs font-semibold">
-                                ⚡ En 1 minuto
+                                ⚡ {t.enUnMinuto}
                             </span>
                             <span className="inline-flex items-center gap-1 px-4 py-2 bg-white/15 backdrop-blur rounded-full text-white text-xs font-semibold">
-                                📋 Múltiples especialidades
+                                📋 {t.multiplesEspecialidades}
                             </span>
                         </div>
                     </div>
@@ -133,7 +135,7 @@ export const Dashboard = () => {
                     <div>
                         <div className="flex items-center gap-3 mb-3">
                             <h3 className="text-xs font-bold text-sky-deep tracking-widest">
-                                ⏰ PRÓXIMA CITA
+                                ⏰ {t.proximaCita}
                             </h3>
                             {proximaCita && proximaCita.fecha && (
                                 <Badge variante="success" conPunto>
@@ -148,7 +150,7 @@ export const Dashboard = () => {
                                     {/* IZQUIERDA */}
                                     <div className="md:col-span-4">
                                         <h4 className="text-xl font-extrabold text-blue-deep mb-3">
-                                            {proximaCita.especialidad ?? 'Especialidad'}
+                                            {proximaCita.especialidad ?? t.especialidad}
                                         </h4>
 
                                         {proximaCita.medico_nombres && (
@@ -175,15 +177,19 @@ export const Dashboard = () => {
                                     {/* CENTRO: timeline */}
                                     <div className="md:col-span-5 md:border-l md:border-r md:border-gray-100 md:px-6">
                                         <p className="text-[10px] font-bold text-mute tracking-widest mb-5">
-                                            ESTADO DEL PROCESO
+                                            {t.estadoProceso}
                                         </p>
-                                        <Timeline />
+                                        <Timeline
+                                            reservadaLabel={t.estadoReservada.toUpperCase()}
+                                            recordatorioLabel={t.estadoRecordatorio.toUpperCase()}
+                                            visitaLabel={t.visita}
+                                        />
                                     </div>
 
                                     {/* DERECHA */}
                                     <div className="md:col-span-3 space-y-2">
                                         <Boton fullWidth onClick={() => navigate('/paciente/mis-citas')}>
-                                            Ver detalle →
+                                            {t.verDetalle}
                                         </Boton>
                                         <Boton
                                             fullWidth
@@ -191,16 +197,16 @@ export const Dashboard = () => {
                                             disabled={cancelando}
                                             onClick={() => setConfirmarAbierto(true)}
                                         >
-                                            {cancelando ? 'Cancelando...' : 'Cancelar cita'}
+                                            {cancelando ? t.cancelandoCita : t.cancelarCita}
                                         </Boton>
                                     </div>
                                 </div>
                             </Card>
                         ) : (
                             <Card className="p-8 text-center">
-                                <p className="text-mute text-sm mb-4">No tienes citas próximas</p>
+                                <p className="text-mute text-sm mb-4">{t.noTienesCitasProximas}</p>
                                 <Boton onClick={() => navigate('/paciente/reservar')}>
-                                    Agendar mi primera cita
+                                    {t.agendarMiPrimeraCita}
                                 </Boton>
                             </Card>
                         )}
@@ -209,7 +215,7 @@ export const Dashboard = () => {
 
                 {cargando && (
                     <Card className="p-8 text-center">
-                        <p className="text-mute text-sm">Cargando tu información...</p>
+                        <p className="text-mute text-sm">{t.cargandoInformacion}</p>
                     </Card>
                 )}
             </main>
@@ -221,19 +227,19 @@ export const Dashboard = () => {
                         <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-warning-soft flex items-center justify-center">
                             <span className="text-2xl">⚠️</span>
                         </div>
-                        <h3 className="text-lg font-bold text-ink text-center mb-2">¿Cancelar esta cita?</h3>
+                        <h3 className="text-lg font-bold text-ink text-center mb-2">{t.cancelarEstaCita}</h3>
                         <p className="text-sm text-mute text-center mb-2">
-                            Si cancelas con menos de 24 horas de anticipación, contará como una cancelación tardía.
+                            {t.avisoCancelacionTardia}
                         </p>
                         <p className="text-xs text-warning text-center mb-5 font-semibold">
-                            Acumular cancelaciones tardías puede suspender tu cuenta.
+                            {t.avisoSuspensionCuenta}
                         </p>
                         <div className="flex gap-3">
                             <Boton variante="secondary" fullWidth onClick={() => setConfirmarAbierto(false)}>
-                                No, mantener
+                                {t.noMantener}
                             </Boton>
                             <Boton variante="danger" fullWidth onClick={confirmarCancelacion}>
-                                Sí, cancelar
+                                {t.siCancelar}
                             </Boton>
                         </div>
                     </div>
@@ -249,10 +255,10 @@ export const Dashboard = () => {
                             <span className="text-2xl">{resultado.bloqueada ? '🔒' : resultado.sancionada ? '⚠️' : '✓'}</span>
                         </div>
                         <h3 className="text-lg font-bold text-ink text-center mb-2">
-                            {resultado.bloqueada ? 'Cuenta suspendida' : 'Cita cancelada'}
+                            {resultado.bloqueada ? t.cuentaSuspendida : t.citaCancelada}
                         </h3>
                         <p className="text-sm text-mute text-center mb-5">{resultado.mensaje}</p>
-                        <Boton fullWidth onClick={() => setResultado(null)}>Entendido</Boton>
+                        <Boton fullWidth onClick={() => setResultado(null)}>{t.entendido}</Boton>
                     </div>
                 </div>
             )}
@@ -260,14 +266,18 @@ export const Dashboard = () => {
     );
 };
 
-const Timeline = () => (
+const Timeline = ({ reservadaLabel, recordatorioLabel, visitaLabel }: {
+    reservadaLabel: string;
+    recordatorioLabel: string;
+    visitaLabel: string;
+}) => (
     <div className="flex items-start justify-between">
         <div className="flex flex-col items-center flex-1">
             <div className="relative">
                 <div className="w-7 h-7 rounded-full bg-success flex items-center justify-center text-white text-xs font-bold">✓</div>
                 <div className="absolute inset-0 rounded-full border-2 border-success opacity-30 animate-pulse-ring" />
             </div>
-            <span className="text-[10px] font-bold text-success mt-2">RESERVADA</span>
+            <span className="text-[10px] font-bold text-success mt-2">{reservadaLabel}</span>
         </div>
         <div className="flex-1 h-0.5 bg-sky-main mt-3.5" />
         <div className="flex flex-col items-center flex-1">
@@ -275,12 +285,12 @@ const Timeline = () => (
                 <div className="w-7 h-7 rounded-full bg-sky-main" />
                 <div className="absolute inset-0 rounded-full border-2 border-sky-main opacity-40 animate-pulse-ring" />
             </div>
-            <span className="text-[10px] font-bold text-sky-main mt-2">RECORDATORIO</span>
+            <span className="text-[10px] font-bold text-sky-main mt-2">{recordatorioLabel}</span>
         </div>
         <div className="flex-1 h-0.5 mt-3.5 border-t-2 border-dashed border-gray-300" />
         <div className="flex flex-col items-center flex-1">
             <div className="w-7 h-7 rounded-full bg-white border-2 border-gray-300" />
-            <span className="text-[10px] font-bold text-mute mt-2">VISITA</span>
+            <span className="text-[10px] font-bold text-mute mt-2">{visitaLabel}</span>
         </div>
     </div>
 );

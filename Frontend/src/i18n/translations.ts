@@ -50,7 +50,56 @@ export const traducciones: Record<Idioma, TraduccionEsquema> = {
         motivoConsulta: 'Motivo de consulta',
         confirmarReserva: 'Confirmar reserva',
         cancelarCita: 'Cancelar cita',
+        cancelandoCita: 'Cancelando...',
         volver: 'Volver',
+
+        // Dashboard Paciente
+        hola: '¡Hola, ',
+        cuidamosTuSalud: 'Cuidamos tu salud, hoy es',
+        reservaEnSegundos: 'RESERVA TU CITA EN SEGUNDOS',
+        necesitasAtencionMedica: '¿Necesitas atención médica?',
+        agendaConEspecialista: 'Agenda con el especialista que necesites, disponible 24/7',
+        agendarNuevaCita: 'Agendar nueva cita',
+        enUnMinuto: 'En 1 minuto',
+        multiplesEspecialidades: 'Múltiples especialidades',
+        proximaCita: 'PRÓXIMA CITA',
+        noTienesCitasProximas: 'No tienes citas próximas',
+        agendarMiPrimeraCita: 'Agendar mi primera cita',
+        cargandoInformacion: 'Cargando tu información...',
+        estadoProceso: 'ESTADO DEL PROCESO',
+        verDetalle: 'Ver detalle →',
+        visita: 'VISITA',
+
+        // Modales de cancelación
+        cancelarEstaCita: '¿Cancelar esta cita?',
+        avisoCancelacionTardia: 'Si cancelas con menos de 24 horas de anticipación, contará como una cancelación tardía.',
+        avisoSuspensionCuenta: 'Acumular cancelaciones tardías puede suspender tu cuenta.',
+        noMantener: 'No, mantener',
+        siCancelar: 'Sí, cancelar',
+        cuentaSuspendida: 'Cuenta suspendida',
+        citaCancelada: 'Cita cancelada',
+        entendido: 'Entendido',
+
+        // Perfil Paciente
+        pacienteRol: 'Paciente',
+        estadisticasTusCitas: 'ESTADÍSTICAS DE TUS CITAS',
+        cargandoEstadisticas: 'Cargando estadísticas...',
+        totalCitas: 'Total citas',
+        datosPersonales: 'DATOS PERSONALES',
+        nombres: 'Nombres',
+        apellidos: 'Apellidos',
+        rol: 'Rol',
+        avisoEditarDatos: 'Para editar tus datos personales, contacta al personal de admisión.',
+
+        // Mis Citas
+        misCitasTitulo: 'Mis Citas',
+        misCitasSub: 'Revisa tu historial de citas médicas y el estado de tus reservas.',
+        filtroTodas: 'Todas',
+        filtroProximas: 'Próximas',
+        filtroCompletadas: 'Completadas',
+        filtroFaltas: 'Faltas',
+        filtroCanceladas: 'Canceladas',
+        sinCitasRegistradas: 'No tienes citas registradas con los filtros seleccionados.',
 
         // Estados de Cita
         estadoReservada: 'Reservada',
@@ -101,6 +150,10 @@ export const traducciones: Record<Idioma, TraduccionEsquema> = {
         faltas: 'FALTAS',
         reservadas: 'RESERVADAS',
         noCitasFiltros: 'No se encontraron citas con esos filtros.',
+
+        // Días y meses
+        diasSemana: ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'],
+        meses: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'],
     },
     en: {
         // Accesibilidad & Global
@@ -144,7 +197,56 @@ export const traducciones: Record<Idioma, TraduccionEsquema> = {
         motivoConsulta: 'Reason for visit',
         confirmarReserva: 'Confirm booking',
         cancelarCita: 'Cancel appointment',
+        cancelandoCita: 'Cancelling...',
         volver: 'Go back',
+
+        // Dashboard Paciente
+        hola: 'Hello, ',
+        cuidamosTuSalud: 'We take care of your health, today is',
+        reservaEnSegundos: 'BOOK YOUR APPOINTMENT IN SECONDS',
+        necesitasAtencionMedica: 'Do you need medical attention?',
+        agendaConEspecialista: 'Schedule with the specialist you need, available 24/7',
+        agendarNuevaCita: 'Book new appointment',
+        enUnMinuto: 'In 1 minute',
+        multiplesEspecialidades: 'Multiple specialties',
+        proximaCita: 'NEXT APPOINTMENT',
+        noTienesCitasProximas: 'You have no upcoming appointments',
+        agendarMiPrimeraCita: 'Book my first appointment',
+        cargandoInformacion: 'Loading your information...',
+        estadoProceso: 'PROCESS STATUS',
+        verDetalle: 'View details →',
+        visita: 'VISIT',
+
+        // Modales de cancelación
+        cancelarEstaCita: 'Cancel this appointment?',
+        avisoCancelacionTardia: 'If you cancel less than 24 hours in advance, it will count as a late cancellation.',
+        avisoSuspensionCuenta: 'Accumulating late cancellations may suspend your account.',
+        noMantener: 'No, keep it',
+        siCancelar: 'Yes, cancel',
+        cuentaSuspendida: 'Account suspended',
+        citaCancelada: 'Appointment cancelled',
+        entendido: 'Understood',
+
+        // Perfil Paciente
+        pacienteRol: 'Patient',
+        estadisticasTusCitas: 'YOUR APPOINTMENT STATISTICS',
+        cargandoEstadisticas: 'Loading statistics...',
+        totalCitas: 'Total appointments',
+        datosPersonales: 'PERSONAL INFORMATION',
+        nombres: 'First names',
+        apellidos: 'Last names',
+        rol: 'Role',
+        avisoEditarDatos: 'To update your personal information, please contact admission staff.',
+
+        // Mis Citas
+        misCitasTitulo: 'My Appointments',
+        misCitasSub: 'Check your medical appointment history and booking statuses.',
+        filtroTodas: 'All',
+        filtroProximas: 'Upcoming',
+        filtroCompletadas: 'Completed',
+        filtroFaltas: 'No-shows',
+        filtroCanceladas: 'Cancelled',
+        sinCitasRegistradas: 'No appointments found with the selected filters.',
 
         // Estados de Cita
         estadoReservada: 'Booked',
@@ -195,6 +297,10 @@ export const traducciones: Record<Idioma, TraduccionEsquema> = {
         faltas: 'NO-SHOWS',
         reservadas: 'BOOKED',
         noCitasFiltros: 'No appointments found with those filters.',
+
+        // Días y meses
+        diasSemana: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+        meses: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
     },
     qu: {
         // Accesibilidad & Global
@@ -238,7 +344,56 @@ export const traducciones: Record<Idioma, TraduccionEsquema> = {
         motivoConsulta: 'Hampikuna rayku',
         confirmarReserva: 'Waqaychayta takyachiy',
         cancelarCita: 'Tupanata tatichiy',
+        cancelandoCita: 'Tatichichkan...',
         volver: 'Kutiy',
+
+        // Dashboard Paciente
+        hola: 'Allianllachu, ',
+        cuidamosTuSalud: 'Qhali kayniykita qhawayku, kunan p\'unchawmi',
+        reservaEnSegundos: 'TUPANATA CHINKIPALLAPI WAQAYCHAY',
+        necesitasAtencionMedica: '¿Hampina wasita munankichu?',
+        agendaConEspecialista: 'Munanki chay hampiqwan tupanata churay, 24/7 kachkan',
+        agendarNuevaCita: 'Musuq tupanata waqaychay',
+        enUnMinuto: 'Huk chinipillapi',
+        multiplesEspecialidades: 'Achka hampina kitikuna',
+        proximaCita: 'HAMUQ TUPANA',
+        noTienesCitasProximas: 'Manam hamuq tupanaykikuna kanchu',
+        agendarMiPrimeraCita: 'Ñawpaq tupanayta waqaychay',
+        cargandoInformacion: 'Willayniykita chaqnachkan...',
+        estadoProceso: 'RURAYPA KAQNIN',
+        verDetalle: 'Tukuy qaway →',
+        visita: 'WATUKUY',
+
+        // Modales de cancelación
+        cancelarEstaCita: '¿Kay tupanata tatichinkichu?',
+        avisoCancelacionTardia: 'Sichus 24 pachamanta pisi kachkaptin tatichinki, qhipa tatichiyhina yupasqa kanqa.',
+        avisoSuspensionCuenta: 'Achka qhipa tatichiykuna yupayniykita sayachiyta atin.',
+        noMantener: 'Mana, kachun',
+        siCancelar: 'Arí, tatichiy',
+        cuentaSuspendida: 'Yupay sayachisqa',
+        citaCancelada: 'Tupana tatichisqa',
+        entendido: 'Hamut\'asqa',
+
+        // Perfil Paciente
+        pacienteRol: 'Hampichikuq',
+        estadisticasTusCitas: 'TUPANAYKIKUNAPA WILLAYNIN',
+        cargandoEstadisticas: 'Willaykunata chaqnachkan...',
+        totalCitas: 'Llapan tupanaykuna',
+        datosPersonales: 'KIKIN WILLAYNIYKI',
+        nombres: 'Sutikuna',
+        apellidos: 'Ayllu sutikuna',
+        rol: 'Ruray',
+        avisoEditarDatos: 'Kikin willayniykita allichanapaq, yaykuna wasi runakunawan rimay.',
+
+        // Mis Citas
+        misCitasTitulo: 'Ñuqapa Tupanaykuna',
+        misCitasSub: 'Tupanaykikunata qhaway chaymanta imayna kachkasqanta yachay.',
+        filtroTodas: 'Llapan',
+        filtroProximas: 'Hamuqkuna',
+        filtroCompletadas: 'Tukusqakuna',
+        filtroFaltas: 'Mana chayasqakuna',
+        filtroCanceladas: 'Tatichisqakuna',
+        sinCitasRegistradas: 'Manam tupanaykikuna kanchu chay suysukunawan.',
 
         // Estados de Cita
         estadoReservada: 'Waqaychasqa',
@@ -289,6 +444,10 @@ export const traducciones: Record<Idioma, TraduccionEsquema> = {
         faltas: 'MANA CHAYASQAKUNA',
         reservadas: 'WAQAYCHASQAKUNA',
         noCitasFiltros: 'Manam tupanaykuna tarisqachu chay suysunakunawan.',
+
+        // Días y meses
+        diasSemana: ['Intichaw', 'Killachaw', 'Atipachaw', 'Qoyllurchaw', 'Illapachaw', 'Ch\'askachaw', 'K\'uychichaw'],
+        meses: ['Qhapaq Raymi', 'Hatun Puquy', 'Pawqar Waray', 'Ayriway', 'Aymuray', 'Inti Raymi', 'Anta Sitwa', 'Qhapaq Sitwa', 'Tarpuy Killa', 'Kantaray', 'Ayamarq\'a', 'Qhapaq Raymi'],
     },
     ay: {
         // Accesibilidad & Global
@@ -332,7 +491,56 @@ export const traducciones: Record<Idioma, TraduccionEsquema> = {
         motivoConsulta: 'Kuna layku qullasiñani',
         confirmarReserva: 'Katuqawi iyaw saña',
         cancelarCita: 'Tantachawi jiwt\'ayaña',
+        cancelandoCita: 'Jiskt\'asiskawa...',
         volver: 'Kutt\'aña',
+
+        // Dashboard Paciente
+        hola: 'Kamisaraki, ',
+        cuidamosTuSalud: 'Qhallasitamatw unch\'ukipxta, jichhuruxa',
+        reservaEnSegundos: 'TUPAWITA JANK\'A KATUQAÑA',
+        necesitasAtencionMedica: '¿Qullayta munatati?',
+        agendaConEspecialista: 'Wakisisktam qullirimpi tantachawi qillqantaña, 24/7 utji',
+        agendarNuevaCita: 'Machaq tantachawi katuqaña',
+        enUnMinuto: 'Mä minutoki',
+        multiplesEspecialidades: 'Walja qullañ kastanaka',
+        proximaCita: 'JUTIR TANTACHAWI',
+        noTienesCitasProximas: 'Janiw jutir tantachawinaka utjktamti',
+        agendarMiPrimeraCita: 'Nayraqat tantachawij katuqaña',
+        cargandoInformacion: 'Yatiyatanakam apaniskawa...',
+        estadoProceso: 'LURAWI KANKAÑA',
+        verDetalle: 'Taqpach uñjaña →',
+        visita: 'TUMPAWI',
+
+        // Modales de cancelación
+        cancelarEstaCita: '¿Aka tantachawi jiwt\'ayañ munati?',
+        avisoCancelacionTardia: 'Siti 24 pacha qhipat jiwt\'ayataxa, qhipa jiwt\'ayawjam jakxatasiñaniwa.',
+        avisoSuspensionCuenta: 'Walja qhipa jiwt\'ayatanakaxa cuentam llawt\'aspawa.',
+        noMantener: 'Janiwa, kachpan',
+        siCancelar: 'Jïsa, jiwt\'ayaña',
+        cuentaSuspendida: 'Cuenta llawt\'ata',
+        citaCancelada: 'Tantachawi jiwt\'ayata',
+        entendido: 'Amuyatawa',
+
+        // Perfil Paciente
+        pacienteRol: 'Usiñani',
+        estadisticasTusCitas: 'TANTACHAWINAKAMAN JAKHUWIPA',
+        cargandoEstadisticas: 'Jakhuwinaka apaniskawa...',
+        totalCitas: 'Taqpacha tantachawinaka',
+        datosPersonales: 'JAKAWINAMANA YATIYAWI',
+        nombres: 'Sutinaka',
+        apellidos: 'Ayllu sutinaka',
+        rol: 'Lurawi',
+        avisoEditarDatos: 'Yatiyawinaka mayjt\'ayañatakixa, katuqirimpi parlantaña.',
+
+        // Mis Citas
+        misCitasTitulo: 'Nayan Tantachawinaka',
+        misCitasSub: 'Tantachawinakamana nayra sarawipa uñacht\'aña.',
+        filtroTodas: 'Taqpacha',
+        filtroProximas: 'Jutirinaka',
+        filtroCompletadas: 'Tukuyatanaka',
+        filtroFaltas: 'Jani jutirinaka',
+        filtroCanceladas: 'Jiskt\'atanaka',
+        sinCitasRegistradas: 'Janiw tantachawinakaxa utjkiti uka ajllitanakampi.',
 
         // Estados de Cita
         estadoReservada: 'Katuqata',
@@ -383,5 +591,9 @@ export const traducciones: Record<Idioma, TraduccionEsquema> = {
         faltas: 'JANI JUTIRINAKA',
         reservadas: 'KATUQATANAKA',
         noCitasFiltros: 'Janiw tantachawinakaxa jikxataskiti uka suysutanakampi.',
+
+        // Días y meses
+        diasSemana: ['Willka uru', 'Phaxsi uru', 'Saxra uru', 'Pacha uru', 'Illapa uru', 'Ñanqha uru', 'Samar uru'],
+        meses: ['Chinuqa', 'Anata', 'Achuqa', 'Qasawi', 'Llamayu', 'Jach\'a mara', 'Puriy', 'Thaya phaxsi', 'Taqsaw phaxsi', 'Taypi sata', 'Lapaka', 'Jallu qallta'],
     },
 };

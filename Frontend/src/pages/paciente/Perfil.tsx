@@ -8,12 +8,14 @@ import { Header } from '../../components/layout/Header';
 import { Card } from '../../components/common/Card';
 
 import { useAuth } from '../../auth/useAuth';
+import { useTranslation } from '../../i18n';
 import { citasApi } from '../../api/citasApi';
 import { ContadoresPaciente } from '../../types';
 import { obtenerIniciales } from '../../utils/formatters';
 
 export const Perfil = () => {
     const { user } = useAuth();
+    const { t } = useTranslation();
     const [contadores, setContadores] = useState<ContadoresPaciente | null>(null);
 
     useEffect(() => {
@@ -46,7 +48,7 @@ export const Perfil = () => {
                             </h1>
                             <p className="text-sm text-mute mt-1">{user?.correo}</p>
                             <span className="inline-block mt-2 px-3 py-1 bg-sky-soft text-sky-deep text-xs font-bold rounded-full">
-                                Paciente
+                                {t.pacienteRol}
                             </span>
                         </div>
                     </div>
@@ -54,12 +56,12 @@ export const Perfil = () => {
 
                 {/* ====== Estadísticas ====== */}
                 <h2 className="text-xs font-bold text-sky-deep tracking-widest mb-3">
-                    📊 ESTADÍSTICAS DE TUS CITAS
+                    📊 {t.estadisticasTusCitas}
                 </h2>
 
                 {!contadores && (
                     <Card className="p-8 text-center">
-                        <p className="text-mute text-sm">Cargando estadísticas...</p>
+                        <p className="text-mute text-sm">{t.cargandoEstadisticas}</p>
                     </Card>
                 )}
 
@@ -67,7 +69,7 @@ export const Perfil = () => {
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                         <Card className="p-6">
                             <p className="text-[11px] font-bold text-mute tracking-widest uppercase mb-2">
-                                Total citas
+                                {t.totalCitas}
                             </p>
                             <div className="flex items-center justify-between">
                                 <span className="text-4xl font-extrabold text-blue-deep">
@@ -81,7 +83,7 @@ export const Perfil = () => {
 
                         <Card className="p-6">
                             <p className="text-[11px] font-bold text-mute tracking-widest uppercase mb-2">
-                                Completadas
+                                {t.completadas}
                             </p>
                             <div className="flex items-center justify-between">
                                 <span className="text-4xl font-extrabold text-success">
@@ -95,7 +97,7 @@ export const Perfil = () => {
 
                         <Card className="p-6">
                             <p className="text-[11px] font-bold text-mute tracking-widest uppercase mb-2">
-                                Próximas
+                                {t.filtroProximas}
                             </p>
                             <div className="flex items-center justify-between">
                                 <span className="text-4xl font-extrabold text-sky-main">
@@ -109,7 +111,7 @@ export const Perfil = () => {
 
                         <Card className="p-6">
                             <p className="text-[11px] font-bold text-mute tracking-widest uppercase mb-2">
-                                Faltas
+                                {t.faltas}
                             </p>
                             <div className="flex items-center justify-between">
                                 <span className="text-4xl font-extrabold text-danger">
@@ -125,19 +127,19 @@ export const Perfil = () => {
 
                 {/* ====== Datos personales ====== */}
                 <h2 className="text-xs font-bold text-sky-deep tracking-widest mb-3 mt-8">
-                    👤 DATOS PERSONALES
+                    👤 {t.datosPersonales}
                 </h2>
 
                 <Card className="p-8">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <DatoCampo label="Nombres" valor={user?.nombres ?? '-'} />
-                        <DatoCampo label="Apellidos" valor={user?.apellidos ?? '-'} />
-                        <DatoCampo label="Correo electrónico" valor={user?.correo ?? '-'} />
-                        <DatoCampo label="Rol" valor={user?.rol ?? '-'} />
+                        <DatoCampo label={t.nombres} valor={user?.nombres ?? '-'} />
+                        <DatoCampo label={t.apellidos} valor={user?.apellidos ?? '-'} />
+                        <DatoCampo label={t.correoElectronico} valor={user?.correo ?? '-'} />
+                        <DatoCampo label={t.rol} valor={user?.rol ?? '-'} />
                     </div>
 
                     <p className="text-xs text-mute mt-6 italic">
-                        Para editar tus datos personales, contacta al personal de admisión.
+                        {t.avisoEditarDatos}
                     </p>
                 </Card>
             </main>

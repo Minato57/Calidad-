@@ -49,7 +49,56 @@ export interface TraduccionEsquema {
     motivoConsulta: string;
     confirmarReserva: string;
     cancelarCita: string;
+    cancelandoCita: string;
     volver: string;
+
+    // Dashboard Paciente
+    hola: string;
+    cuidamosTuSalud: string;
+    reservaEnSegundos: string;
+    necesitasAtencionMedica: string;
+    agendaConEspecialista: string;
+    agendarNuevaCita: string;
+    enUnMinuto: string;
+    multiplesEspecialidades: string;
+    proximaCita: string;
+    noTienesCitasProximas: string;
+    agendarMiPrimeraCita: string;
+    cargandoInformacion: string;
+    estadoProceso: string;
+    verDetalle: string;
+    visita: string;
+
+    // Modales de cancelación
+    cancelarEstaCita: string;
+    avisoCancelacionTardia: string;
+    avisoSuspensionCuenta: string;
+    noMantener: string;
+    siCancelar: string;
+    cuentaSuspendida: string;
+    citaCancelada: string;
+    entendido: string;
+
+    // Perfil Paciente
+    pacienteRol: string;
+    estadisticasTusCitas: string;
+    cargandoEstadisticas: string;
+    totalCitas: string;
+    datosPersonales: string;
+    nombres: string;
+    apellidos: string;
+    rol: string;
+    avisoEditarDatos: string;
+
+    // Mis Citas
+    misCitasTitulo: string;
+    misCitasSub: string;
+    filtroTodas: string;
+    filtroProximas: string;
+    filtroCompletadas: string;
+    filtroFaltas: string;
+    filtroCanceladas: string;
+    sinCitasRegistradas: string;
 
     // Estados de Cita
     estadoReservada: string;
@@ -100,4 +149,8 @@ export interface TraduccionEsquema {
     faltas: string;
     reservadas: string;
     noCitasFiltros: string;
+
+    // Días y meses para fechas
+    diasSemana: string[];
+    meses: string[];
 }
