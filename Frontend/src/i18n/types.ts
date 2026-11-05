@@ -72,3 +72,4 @@ export interface TraduccionEsquema {
     correos: string;
     reportes: string;
 }
+

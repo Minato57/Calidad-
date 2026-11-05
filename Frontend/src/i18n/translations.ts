@@ -269,3 +269,4 @@ export const traducciones: Record<Idioma, TraduccionEsquema> = {
         reportes: 'Yatiyawinaka',
     },
 };
+

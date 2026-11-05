@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useEffect, useState, ReactNode } from 'react';
 import { Idioma, IdiomaInfo, TraduccionEsquema } from './types';
 import { traducciones, IDIOMAS_DISPONIBLES } from './translations';
