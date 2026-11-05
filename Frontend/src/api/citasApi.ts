@@ -25,6 +25,15 @@ export interface ReservarPayload {
     id_pago?: number;
 }
 
+interface FamiliarBackend {
+    id_familiar: number;
+    nombres: string;
+    apellidos: string;
+    dni: string | null;
+    fecha_nacimiento: string | null;
+    parentesco: string | null;
+}
+
 export const citasApi = {
     listarEspecialidades: async (): Promise<Especialidad[]> => {
         const response = await apiClient.get('/citas/especialidades');
@@ -81,7 +90,7 @@ export const citasApi = {
     listarDependientes: async (): Promise<Dependiente[]> => {
         const response = await apiClient.get('/usuarios/familiares');
         const familiares = response.data.familiares ?? [];
-        return familiares.map((f: any) => ({
+        return familiares.map((f: FamiliarBackend) => ({
             id_dependiente: f.id_familiar,
             nombres: f.nombres,
             apellidos: f.apellidos,
