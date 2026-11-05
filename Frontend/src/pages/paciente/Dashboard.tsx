@@ -150,7 +150,7 @@ export const Dashboard = () => {
                                     {/* IZQUIERDA */}
                                     <div className="md:col-span-4">
                                         <h4 className="text-xl font-extrabold text-blue-deep mb-3">
-                                            {proximaCita.especialidad ?? t.especialidad}
+                                            {(proximaCita.especialidad ? (t.especialidadesTraducidas[proximaCita.especialidad]?.nombre ?? proximaCita.especialidad) : t.especialidad)}
                                         </h4>
 
                                         {proximaCita.medico_nombres && (

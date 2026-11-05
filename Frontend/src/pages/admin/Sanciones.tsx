@@ -60,7 +60,7 @@ export const Sanciones = () => {
                             {/* Slider límite */}
                             <Card bordeLateral="sky" className="p-6">
                                 <h2 className="text-base font-bold text-blue-deep mb-1">{t.limiteInasistencias}</h2>
-                                <p className="text-xs text-mute mb-5">Al alcanzar este número, la cuenta del paciente se bloquea</p>
+                                <p className="text-xs text-mute mb-5">{t.limiteInasistenciasSub}</p>
                                 <input type="range" min={3} max={10} value={limite}
                                     onChange={(e) => setLimite(Number(e.target.value))}
                                     className="w-full accent-sky-main" />
@@ -74,13 +74,13 @@ export const Sanciones = () => {
                             {/* Slider días */}
                             <Card bordeLateral="sky" className="p-6">
                                 <h2 className="text-base font-bold text-blue-deep mb-1">{t.diasSuspension}</h2>
-                                <p className="text-xs text-mute mb-5">Tiempo que el paciente no podrá agendar tras el bloqueo</p>
+                                <p className="text-xs text-mute mb-5">{t.diasSuspensionSub}</p>
                                 <input type="range" min={1} max={30} value={dias}
                                     onChange={(e) => setDias(Number(e.target.value))}
                                     className="w-full accent-sky-main" />
                                 <div className="flex justify-between text-xs text-mute mt-1">
                                     <span>1</span>
-                                    <span className="text-2xl font-extrabold text-sky-deep">{dias} días</span>
+                                    <span className="text-2xl font-extrabold text-sky-deep">{dias} {t.dias}</span>
                                     <span>30</span>
                                 </div>
                             </Card>
@@ -89,7 +89,7 @@ export const Sanciones = () => {
 
                             <div className="flex justify-end">
                                 <Boton onClick={guardar} disabled={guardando}>
-                                    {guardando ? 'Guardando...' : '💾 Guardar cambios'}
+                                    {guardando ? 'Guardando...' : `💾 ${t.guardarCambios}`}
                                 </Boton>
                             </div>
                         </div>

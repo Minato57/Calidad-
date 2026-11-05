@@ -446,8 +446,8 @@ const PasoEspecialidad = ({ especialidades, cargando, seleccionada, onSelecciona
                             className={`p-5 rounded-xl border-2 text-left transition-all
                                 ${activa ? 'border-sky-main bg-sky-soft shadow-cta' : 'border-gray-200 hover:border-sky-main hover:bg-sky-soft'}`}>
                             <div className="w-10 h-10 rounded-lg bg-sky-soft flex items-center justify-center mb-3"><span className="text-xl">🏥</span></div>
-                            <h3 className="font-bold text-ink text-sm mb-1">{e.nombre}</h3>
-                            {e.descripcion && <p className="text-xs text-mute line-clamp-2">{e.descripcion}</p>}
+                            <h3 className="font-bold text-ink text-sm mb-1">{t.especialidadesTraducidas[e.nombre]?.nombre ?? e.nombre}</h3>
+                            {e.descripcion && <p className="text-xs text-mute line-clamp-2">{t.especialidadesTraducidas[e.nombre]?.descripcion ?? e.descripcion}</p>}
                         </button>
                     );
                 })}
@@ -471,7 +471,7 @@ const PasoMedico = ({ especialidad, medicos, cargando, seleccionado, error, onSe
     <Card className="p-8">
         <h2 className="text-xl font-extrabold text-blue-deep mb-2">{t.eligeTuMedico}</h2>
         <p className="text-sm text-mute mb-6">
-            {t.especialidad}: <span className="font-bold text-sky-deep">{especialidad.nombre}</span>
+            {t.especialidad}: <span className="font-bold text-sky-deep">{t.especialidadesTraducidas[especialidad.nombre]?.nombre ?? especialidad.nombre}</span>
         </p>
 
         {cargando ? (
@@ -495,7 +495,7 @@ const PasoMedico = ({ especialidad, medicos, cargando, seleccionado, error, onSe
                             </div>
                             <div>
                                 <h3 className="font-bold text-ink text-sm">Dr. {m.nombres} {m.apellidos}</h3>
-                                <p className="text-xs text-mute">{especialidad.nombre}</p>
+                                <p className="text-xs text-mute">{t.especialidadesTraducidas[especialidad.nombre]?.nombre ?? especialidad.nombre}</p>
                             </div>
                         </button>
                     );
@@ -815,7 +815,7 @@ const PasoHorario = ({
                 <div className="bg-sky-soft rounded-lg p-4">
                     <p className="text-xs font-bold text-sky-deep mb-2">{t.resumenCita}</p>
                     <ul className="text-sm text-ink-soft space-y-1">
-                        <li>📋 <strong>{t.especialidad}:</strong> {especialidad.nombre}</li>
+                        <li>📋 <strong>{t.especialidad}:</strong> {t.especialidadesTraducidas[especialidad.nombre]?.nombre ?? especialidad.nombre}</li>
                         <li>👨‍⚕️ <strong>{t.medico}:</strong> Dr. {medico.nombres} {medico.apellidos}</li>
                         <li>📅 <strong>{t.fecha}:</strong> {formatearFecha(fecha)}</li>
                         <li>⏰ <strong>{t.hora}:</strong> {formatearHora(horaSel.hora)}</li>
@@ -857,7 +857,7 @@ const ExitoReserva = ({ especialidad, fecha, hora }: { especialidad: string; fec
         <h2 className="text-3xl font-extrabold text-blue-deep mb-2">{t.citaReservadaExito}</h2>
         <p className="text-sm text-mute mb-6">{t.teEsperamosSanGenaro}</p>
         <div className="inline-block bg-sky-soft rounded-2xl px-6 py-4 mb-6">
-            <p className="text-lg font-bold text-sky-deep">{especialidad}</p>
+            <p className="text-lg font-bold text-sky-deep">{t.especialidadesTraducidas[especialidad]?.nombre ?? especialidad}</p>
             <p className="text-sm text-ink-soft mt-1">{formatearFecha(fecha)} · {formatearHora(hora)}</p>
         </div>
         <p className="text-xs text-mute">{t.redirigiendoInicio}</p>

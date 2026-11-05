@@ -158,7 +158,7 @@ export const MisCitas = () => {
                             >
                                 <option value="">{t.todas}</option>
                                 {especialidadesUnicas.map(esp => (
-                                    <option key={esp} value={esp}>{esp}</option>
+                                    <option key={esp} value={esp}>{t.especialidadesTraducidas[esp]?.nombre ?? esp}</option>
                                 ))}
                             </select>
                         </div>
@@ -222,7 +222,7 @@ export const MisCitas = () => {
                                         <div className="flex-1 min-w-[200px]">
                                             <div className="flex items-center gap-2 mb-1">
                                                 <h3 className="font-bold text-ink text-base">
-                                                    {cita.especialidad ?? t.especialidad}
+                                                    {(cita.especialidad ? (t.especialidadesTraducidas[cita.especialidad]?.nombre ?? cita.especialidad) : t.especialidad)}
                                                 </h3>
                                                 <BadgeEstadoCita estado={cita.estado} />
                                             </div>

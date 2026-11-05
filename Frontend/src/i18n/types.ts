@@ -225,6 +225,27 @@ export interface TraduccionEsquema {
     inactivo: string;
     acciones: string;
 
+    
+    // Insignias (Badges) y etiquetas comunes
+    sinSeguro: string;
+    familiar: string;
+    menor: string;
+    conAcceso: string;
+    hoy: string;
+    manana: string;
+    enDias: string;
+    haceDias: string;
+    dias: string;
+
+    // Sliders Sanciones y Cancelaciones
+    limiteCancelaciones: string;
+    limiteCancelacionesSub: string;
+    limiteInasistenciasSub: string;
+    diasSuspensionSub: string;
+
+    // Especialidades traducidas
+    especialidadesTraducidas: Record<string, { nombre: string; descripcion: string }>;
+
     diasSemana: string[];
     meses: string[];
 }
