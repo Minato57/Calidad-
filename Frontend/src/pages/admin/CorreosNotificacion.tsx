@@ -7,10 +7,12 @@ import { Boton } from '../../components/common/Boton';
 import { Input } from '../../components/common/Input';
 import { Badge } from '../../components/common/Badge';
 
+import { useTranslation } from '../../i18n';
 import { correosApi } from '../../api/correosApi';
 import { Remitente } from '../../types';
 
 export const CorreosNotificacion = () => {
+    const { t } = useTranslation();
     const [remitentes, setRemitentes] = useState<Remitente[]>([]);
     const [pendientes, setPendientes] = useState(0);
     const [cargando, setCargando]     = useState(true);
@@ -140,7 +142,7 @@ export const CorreosNotificacion = () => {
             <div className="flex">
                 <Sidebar />
                 <main id="contenido-principal" className="flex-1 p-8 max-w-5xl">
-                    <h1 className="text-3xl font-extrabold text-ink mb-1">Correos de notificación</h1>
+                    <h1 className="text-3xl font-extrabold text-ink mb-1">{t.correosNotificacionTitulo}</h1>
                     <p className="text-sm text-mute mb-6">Gestiona los correos remitentes y envía notificaciones por email</p>
 
                     {/* ═══════ Envío ═══════ */}
@@ -180,7 +182,7 @@ export const CorreosNotificacion = () => {
                                 {editando ? 'Editar remitente' : 'Agregar remitente'}
                             </h2>
                             <form onSubmit={guardar} className="space-y-3">
-                                <Input label="Correo remitente" type="email" value={correo} onChange={(e) => setCorreo(e.target.value)} placeholder="notificaciones@gmail.com" required />
+                                <Input label={t.correoElectronico} type="email" value={correo} onChange={(e) => setCorreo(e.target.value)} placeholder="notificaciones@gmail.com" required />
                                 <Input label={editando ? 'Contraseña de aplicación (dejar vacío para mantener)' : 'Contraseña de aplicación'} type="password" value={appPassword} onChange={(e) => setAppPassword(e.target.value)} placeholder="xxxx xxxx xxxx xxxx" required={!editando} />
                                 <Input label="Nombre visible en el correo (opcional)" value={nombreRemitente} onChange={(e) => setNombreRemitente(e.target.value)} placeholder="Centro de Salud San Genaro de Villa" />
                                 <div className="grid grid-cols-2 gap-3">
@@ -200,7 +202,7 @@ export const CorreosNotificacion = () => {
                                         {procesando ? 'Guardando...' : editando ? 'Actualizar' : 'Agregar remitente'}
                                     </Boton>
                                     {editando && (
-                                        <Boton type="button" variante="secondary" onClick={limpiar}>Cancelar</Boton>
+                                        <Boton type="button" variante="secondary" onClick={limpiar}>{t.cancelar}</Boton>
                                     )}
                                 </div>
                             </form>

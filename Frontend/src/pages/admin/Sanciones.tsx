@@ -8,9 +8,11 @@ import { Sidebar } from '../../components/layout/Sidebar';
 import { Card } from '../../components/common/Card';
 import { Boton } from '../../components/common/Boton';
 
+import { useTranslation } from '../../i18n';
 import { adminApi } from '../../api/adminApi';
 
 export const Sanciones = () => {
+    const { t } = useTranslation();
     const [limite, setLimite]     = useState(3);
     const [dias, setDias]         = useState(15);
     const [cargando, setCargando] = useState(true);
@@ -50,14 +52,14 @@ export const Sanciones = () => {
             <div className="flex">
                 <Sidebar />
                 <main id="contenido-principal" className="flex-1 p-8 max-w-3xl">
-                    <h1 className="text-3xl font-extrabold text-ink mb-1">Configurar sanciones</h1>
-                    <p className="text-sm text-mute mb-6">Define los límites de inasistencias y suspensión</p>
+                    <h1 className="text-3xl font-extrabold text-ink mb-1">{t.configurarSanciones}</h1>
+                    <p className="text-sm text-mute mb-6">{t.configurarSancionesSub}</p>
 
                     {cargando ? <Card className="p-8 text-center text-mute text-sm">Cargando...</Card> : (
                         <div className="space-y-6">
                             {/* Slider límite */}
                             <Card bordeLateral="sky" className="p-6">
-                                <h2 className="text-base font-bold text-blue-deep mb-1">Límite de inasistencias</h2>
+                                <h2 className="text-base font-bold text-blue-deep mb-1">{t.limiteInasistencias}</h2>
                                 <p className="text-xs text-mute mb-5">Al alcanzar este número, la cuenta del paciente se bloquea</p>
                                 <input type="range" min={3} max={10} value={limite}
                                     onChange={(e) => setLimite(Number(e.target.value))}
@@ -71,7 +73,7 @@ export const Sanciones = () => {
 
                             {/* Slider días */}
                             <Card bordeLateral="sky" className="p-6">
-                                <h2 className="text-base font-bold text-blue-deep mb-1">Días de suspensión</h2>
+                                <h2 className="text-base font-bold text-blue-deep mb-1">{t.diasSuspension}</h2>
                                 <p className="text-xs text-mute mb-5">Tiempo que el paciente no podrá agendar tras el bloqueo</p>
                                 <input type="range" min={1} max={30} value={dias}
                                     onChange={(e) => setDias(Number(e.target.value))}

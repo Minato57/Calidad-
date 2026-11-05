@@ -9,10 +9,12 @@ import { Card } from '../../components/common/Card';
 import { Boton } from '../../components/common/Boton';
 import { Input } from '../../components/common/Input';
 
+import { useTranslation } from '../../i18n';
 import { adminApi } from '../../api/adminApi';
 import { Especialidad } from '../../types';
 
 export const CancelacionMasiva = () => {
+    const { t } = useTranslation();
     const [especialidades, setEspecialidades] = useState<Especialidad[]>([]);
     const [fecha, setFecha]   = useState('');
     const [esp, setEsp]       = useState<number>(0);
@@ -60,8 +62,8 @@ export const CancelacionMasiva = () => {
             <div className="flex">
                 <Sidebar />
                 <main id="contenido-principal" className="flex-1 p-8 max-w-2xl">
-                    <h1 className="text-3xl font-extrabold text-ink mb-1">Cancelación masiva</h1>
-                    <p className="text-sm text-mute mb-6">Cancela todas las citas de una fecha y especialidad (ej. feriado)</p>
+                    <h1 className="text-3xl font-extrabold text-ink mb-1">{t.cancelacionMasivaTitulo}</h1>
+                    <p className="text-sm text-mute mb-6">{t.cancelacionMasivaSub}</p>
 
                     <Card bordeLateral="danger" className="p-6">
                         <div className="bg-warning-soft border border-warning rounded-lg p-3 mb-5">
@@ -71,10 +73,10 @@ export const CancelacionMasiva = () => {
                         </div>
 
                         <form onSubmit={cancelar} className="space-y-4">
-                            <Input label="Fecha" type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} required />
+                            <Input label={t.fecha} type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} required />
 
                             <div>
-                                <label className="block text-xs font-semibold text-ink-soft mb-2">Especialidad</label>
+                                <label className="block text-xs font-semibold text-ink-soft mb-2">{t.especialidad}</label>
                                 <select value={esp} onChange={(e) => setEsp(Number(e.target.value))}
                                     className="w-full px-4 py-3 text-sm bg-white rounded-lg border border-gray-200 focus:border-sky-main outline-none">
                                     <option value={0}>Selecciona...</option>
@@ -83,7 +85,7 @@ export const CancelacionMasiva = () => {
                             </div>
 
                             <div>
-                                <label className="block text-xs font-semibold text-ink-soft mb-2">Motivo de la cancelación</label>
+                                <label className="block text-xs font-semibold text-ink-soft mb-2">{t.motivo}</label>
                                 <textarea value={motivo} onChange={(e) => setMotivo(e.target.value)}
                                     placeholder="Ej: Feriado nacional, el centro permanecerá cerrado"
                                     rows={3} maxLength={300}

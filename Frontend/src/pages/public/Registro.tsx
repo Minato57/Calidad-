@@ -1,7 +1,5 @@
 // =================================================================
 // Página de Registro de paciente nuevo.
-// Conectada al endpoint POST /auth/register del backend.
-// El backend fuerza el rol PACIENTE (UsuarioFactory.crearPaciente).
 // =================================================================
 import { useState, FormEvent } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
@@ -10,9 +8,11 @@ import axios from 'axios';
 import { authApi, RegistroPayload } from '../../api/authApi';
 import { Boton } from '../../components/common/Boton';
 import { Input } from '../../components/common/Input';
+import { useTranslation } from '../../i18n';
 
 export const Registro = () => {
     const navigate = useNavigate();
+    const { t } = useTranslation();
 
     const [form, setForm] = useState<RegistroPayload>({
         correo: '',
@@ -104,24 +104,24 @@ export const Registro = () => {
                             <path d="M5 12 L10 17 L19 8" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
                     </div>
-                    <h1 className="text-2xl font-extrabold text-blue-deep">Crear cuenta</h1>
-                    <p className="text-xs text-mute mt-1">Regístrate como paciente para agendar tus citas</p>
+                    <h1 className="text-2xl font-extrabold text-blue-deep">{t.registroTitulo}</h1>
+                    <p className="text-xs text-mute mt-1">{t.agendarNuevaCitaSub}</p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                     {/* Datos personales */}
                     <div>
-                        <h3 className="text-xs font-bold text-sky-deep uppercase tracking-widest mb-3">Datos personales</h3>
+                        <h3 className="text-xs font-bold text-sky-deep uppercase tracking-widest mb-3">{t.datosPersonales}</h3>
                         <div className="grid grid-cols-2 gap-3">
                             <Input
-                                label="Nombres"
+                                label={t.nombres}
                                 value={form.nombres}
                                 onChange={(e) => actualizar('nombres', e.target.value)}
                                 placeholder="Juan Carlos"
                                 required
                             />
                             <Input
-                                label="Apellidos"
+                                label={t.apellidos}
                                 value={form.apellidos}
                                 onChange={(e) => actualizar('apellidos', e.target.value)}
                                 placeholder="Pérez García"
@@ -182,7 +182,7 @@ export const Registro = () => {
                         <h3 className="text-xs font-bold text-sky-deep uppercase tracking-widest mb-3">Credenciales de acceso</h3>
                         <div className="space-y-3">
                             <Input
-                                label="Correo electrónico"
+                                label={t.correoElectronico}
                                 type="email"
                                 value={form.correo}
                                 onChange={(e) => actualizar('correo', e.target.value)}
@@ -191,7 +191,7 @@ export const Registro = () => {
                             />
                             <div className="grid grid-cols-2 gap-3">
                                 <Input
-                                    label="Contraseña"
+                                    label={t.contrasena}
                                     type="password"
                                     value={form.contrasena}
                                     onChange={(e) => actualizar('contrasena', e.target.value)}
@@ -227,14 +227,14 @@ export const Registro = () => {
                             onClick={() => navigate('/login')}
                             fullWidth
                         >
-                            Cancelar
+                            {t.cancelarCita}
                         </Boton>
                         <Boton
                             type="submit"
                             disabled={cargando}
                             fullWidth
                         >
-                            {cargando ? 'Creando cuenta...' : 'Crear cuenta →'}
+                            {cargando ? 'Creando cuenta...' : `${t.registroTitulo} →`}
                         </Boton>
                     </div>
                 </form>
@@ -242,9 +242,9 @@ export const Registro = () => {
                 {/* Footer */}
                 <div className="text-center mt-6 pt-6 border-t border-gray-100">
                     <p className="text-sm text-mute">
-                        ¿Ya tienes cuenta?{' '}
+                        {t.yaTienesCuenta}{' '}
                         <Link to="/login" className="text-sky-main hover:text-sky-deep font-bold">
-                            Iniciar sesión
+                            {t.iniciarSesion}
                         </Link>
                     </p>
                 </div>

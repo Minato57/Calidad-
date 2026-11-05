@@ -16,6 +16,7 @@ import { citasApi } from '../../api/citasApi';
 import { pagosApi } from '../../api/pagosApi';
 import { Especialidad, Horario, DiaCalendario, MedicoReserva, Dependiente, RequisitoPago } from '../../types';
 import { formatearFecha, formatearHora, obtenerIniciales } from '../../utils/formatters';
+import { useTranslation } from '../../i18n';
 
 type Paso = 1 | 2 | 3 | 4 | 5; // 5 = éxito
 
@@ -32,6 +33,7 @@ interface BorradorReserva {
 }
 
 export const Reservar = () => {
+    const { t } = useTranslation();
     const navigate = useNavigate();
     const [paso, setPaso] = useState<Paso>(1);
 
@@ -306,10 +308,10 @@ export const Reservar = () => {
             <main id="contenido-principal" className="max-w-4xl mx-auto px-6 py-8">
                 <div className="mb-8">
                     <button onClick={() => navigate('/paciente/inicio')} className="text-sm text-mute hover:text-sky-main mb-2">
-                        ← Volver al inicio
+                        {t.volverAlInicio}
                     </button>
-                    <h1 className="text-3xl font-extrabold text-ink">Agendar nueva cita</h1>
-                    <p className="text-sm text-mute mt-1">Sigue los pasos para reservar tu cita</p>
+                    <h1 className="text-3xl font-extrabold text-ink">{t.agendarNuevaCita}</h1>
+                    <p className="text-sm text-mute mt-1">{t.agendarNuevaCitaSub}</p>
                 </div>
 
                 {paso < 5 && <Stepper pasoActual={paso} />}
@@ -390,11 +392,12 @@ export const Reservar = () => {
 
 // ============== STEPPER (4 pasos) ==============
 const Stepper = ({ pasoActual }: { pasoActual: number }) => {
+    const { t } = useTranslation();
     const pasos = [
-        { num: 1, label: 'Especialidad' },
-        { num: 2, label: 'Médico' },
-        { num: 3, label: 'Fecha' },
-        { num: 4, label: 'Hora y motivo' },
+        { num: 1, label: t.paso1Especialidad },
+        { num: 2, label: t.paso2Medico },
+        { num: 3, label: t.paso3Fecha },
+        { num: 4, label: t.paso4HoraMotivo },
     ];
     return (
         <div className="flex items-center justify-center gap-2 mb-8">
@@ -429,11 +432,12 @@ const PasoEspecialidad = ({ especialidades, cargando, seleccionada, onSelecciona
     seleccionada: Especialidad | null;
     onSeleccionar: (e: Especialidad) => void;
 }) => {
+    const { t } = useTranslation();
     if (cargando) return <Card className="p-12 text-center"><p className="text-mute">Cargando especialidades...</p></Card>;
     return (
         <Card className="p-8">
-            <h2 className="text-xl font-extrabold text-blue-deep mb-2">¿Qué especialidad necesitas?</h2>
-            <p className="text-sm text-mute mb-6">Selecciona una opción para continuar</p>
+            <h2 className="text-xl font-extrabold text-blue-deep mb-2">{t.queEspecialidadNecesitas}</h2>
+            <p className="text-sm text-mute mb-6">{t.seleccionaOpcionContinuar}</p>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 {especialidades.map(e => {
                     const activa = seleccionada?.id_especialidad === e.id_especialidad;
@@ -461,11 +465,13 @@ const PasoMedico = ({ especialidad, medicos, cargando, seleccionado, error, onSe
     error: string | null;
     onSeleccionar: (m: MedicoReserva) => void;
     onAtras: () => void;
-}) => (
+}) => {
+    const { t } = useTranslation();
+    return (
     <Card className="p-8">
-        <h2 className="text-xl font-extrabold text-blue-deep mb-2">Elige tu médico</h2>
+        <h2 className="text-xl font-extrabold text-blue-deep mb-2">{t.eligeTuMedico}</h2>
         <p className="text-sm text-mute mb-6">
-            Especialidad: <span className="font-bold text-sky-deep">{especialidad.nombre}</span>
+            {t.especialidad}: <span className="font-bold text-sky-deep">{especialidad.nombre}</span>
         </p>
 
         {cargando ? (
@@ -473,7 +479,7 @@ const PasoMedico = ({ especialidad, medicos, cargando, seleccionado, error, onSe
         ) : medicos.length === 0 ? (
             <div className="bg-warning-soft border border-warning rounded-lg p-4 text-center mb-4">
                 <p className="text-sm text-warning font-semibold">
-                    No hay médicos disponibles en esta especialidad todavía.
+                    {t.noMedicosDisponibles}
                 </p>
             </div>
         ) : (
@@ -500,10 +506,11 @@ const PasoMedico = ({ especialidad, medicos, cargando, seleccionado, error, onSe
         {error && <p className="text-xs text-danger font-semibold mt-3">⚠ {error}</p>}
 
         <div className="flex gap-3 mt-8">
-            <Boton variante="secondary" onClick={onAtras}>← Atrás</Boton>
+            <Boton variante="secondary" onClick={onAtras}>{t.atras}</Boton>
         </div>
     </Card>
-);
+    );
+};
 
 // ============== PASO 3: CALENDARIO ==============
 const PasoCalendario = ({ medico, fechaSel, onFecha, onAtras, onContinuar }: {
@@ -513,6 +520,7 @@ const PasoCalendario = ({ medico, fechaSel, onFecha, onAtras, onContinuar }: {
     onAtras: () => void;
     onContinuar: () => void;
 }) => {
+    const { t } = useTranslation();
     const hoy = new Date();
     const [anio, setAnio] = useState(hoy.getFullYear());
     const [mes, setMes]   = useState(hoy.getMonth() + 1);
@@ -533,8 +541,7 @@ const PasoCalendario = ({ medico, fechaSel, onFecha, onAtras, onContinuar }: {
         })();
     }, [anio, mes, medico]);
 
-    const nombresMes = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-    const primerDiaSemana = new Date(anio, mes - 1, 1).getDay();
+        const primerDiaSemana = new Date(anio, mes - 1, 1).getDay();
     const diasMap = new Map(dias.map(d => [d.fecha, d]));
 
     const cambiarMes = (delta: number) => {
@@ -554,14 +561,14 @@ const PasoCalendario = ({ medico, fechaSel, onFecha, onAtras, onContinuar }: {
 
     return (
         <Card className="p-8">
-            <h2 className="text-xl font-extrabold text-blue-deep mb-2">Elige la fecha de tu cita</h2>
+            <h2 className="text-xl font-extrabold text-blue-deep mb-2">{t.eligeFechaCita}</h2>
             <p className="text-sm text-mute mb-6">
-                Médico: <span className="font-bold text-sky-deep">Dr. {medico.nombres} {medico.apellidos}</span>
+                {t.medico}: <span className="font-bold text-sky-deep">Dr. {medico.nombres} {medico.apellidos}</span>
             </p>
 
             <div className="flex items-center justify-between mb-4">
                 <button onClick={() => cambiarMes(-1)} className="w-9 h-9 rounded-lg bg-smoke hover:bg-sky-soft text-mute font-bold">‹</button>
-                <h3 className="text-base font-bold text-ink">{nombresMes[mes - 1]} {anio}</h3>
+                <h3 className="text-base font-bold text-ink">{t.meses[mes - 1]} {anio}</h3>
                 <button onClick={() => cambiarMes(1)} className="w-9 h-9 rounded-lg bg-smoke hover:bg-sky-soft text-mute font-bold">›</button>
             </div>
 
@@ -606,7 +613,7 @@ const PasoCalendario = ({ medico, fechaSel, onFecha, onAtras, onContinuar }: {
 
             <div className="flex gap-3 mt-8">
                 <Boton variante="secondary" onClick={onAtras}>← Atrás</Boton>
-                <Boton onClick={onContinuar} disabled={!fechaSel}>Continuar →</Boton>
+                <Boton onClick={onContinuar} disabled={!fechaSel}>{t.continuar}</Boton>
             </div>
         </Card>
     );
@@ -654,22 +661,23 @@ const PasoHorario = ({
     cargandoReq: boolean;
     pagoAprobado: number | null;
 }) => {
+    const { t } = useTranslation();
     const requiereMenor = !!especialidad.requiere_datos_menor;
     // Si requiere menor, no se puede confirmar sin uno elegido
     const bloqueoMenor = requiereMenor && !dependienteSel;
 
     return (
     <Card className="p-8">
-        <h2 className="text-xl font-extrabold text-blue-deep mb-2">Elige la hora y describe el motivo</h2>
+        <h2 className="text-xl font-extrabold text-blue-deep mb-2">{t.eligeHoraMotivo}</h2>
         <p className="text-sm text-mute mb-2">{especialidad.nombre} · {formatearFecha(fecha)}</p>
         <p className="text-xs text-sky-deep font-semibold mb-6">👨‍⚕️ Dr. {medico.nombres} {medico.apellidos}</p>
 
         <div className="mb-6">
-            <p className="text-xs font-bold text-ink-soft mb-3">HORARIOS DISPONIBLES</p>
+            <p className="text-xs font-bold text-ink-soft mb-3">{t.horariosDisponibles}</p>
             {cargando && <p className="text-mute text-sm py-6 text-center">Cargando horarios...</p>}
             {!cargando && horarios.length === 0 && (
                 <div className="bg-warning-soft border border-warning rounded-lg p-4 text-center">
-                    <p className="text-sm text-warning font-semibold">No hay horarios para esta fecha. Prueba otra.</p>
+                    <p className="text-sm text-warning font-semibold">{t.noHorariosFecha}</p>
                 </div>
             )}
             {!cargando && horarios.length > 0 && (
@@ -696,8 +704,8 @@ const PasoHorario = ({
                 {/* ===== SECCIÓN DATOS DEL MENOR (solo si la especialidad lo requiere) ===== */}
                 {requiereMenor && (
                     <div className="bg-blue-50 border border-sky-main/30 rounded-lg p-4">
-                        <p className="text-xs font-bold text-sky-deep mb-1">👶 DATOS DEL MENOR</p>
-                        <p className="text-[11px] text-mute mb-3">Esta especialidad es para menores. Indica de quién es la cita.</p>
+                        <p className="text-xs font-bold text-sky-deep mb-1">👶 {t.datosDelMenor}</p>
+                        <p className="text-[11px] text-mute mb-3">{t.especialidadParaMenores}</p>
 
                         {/* Lista de dependientes guardados */}
                         {dependientes.length > 0 && !creandoDep && (
@@ -723,7 +731,7 @@ const PasoHorario = ({
                         {!creandoDep && (
                             <button type="button" onClick={() => onToggleCrear(true)}
                                 className="text-xs font-bold text-sky-main hover:text-sky-deep">
-                                + Registrar otro menor
+                                {t.registrarOtroMenor}
                             </button>
                         )}
 
@@ -763,14 +771,14 @@ const PasoHorario = ({
                 )}
 
                 <div>
-                    <label className="block text-xs font-semibold text-ink-soft mb-2">Motivo de la consulta *</label>
+                    <label className="block text-xs font-semibold text-ink-soft mb-2">{t.motivoConsultaReq}</label>
                     <textarea value={motivo} onChange={(e) => onMotivo(e.target.value)}
-                        placeholder="Ej: Dolor de cabeza recurrente desde hace 3 días"
+                        placeholder={t.placeholderMotivo}
                         rows={3} required maxLength={500}
                         className="w-full px-4 py-3 text-sm bg-white rounded-lg border border-gray-200 focus:border-sky-main outline-none resize-none" />
                 </div>
                 <div>
-                    <label className="block text-xs font-semibold text-ink-soft mb-2">Notas adicionales (opcional)</label>
+                    <label className="block text-xs font-semibold text-ink-soft mb-2">{t.notasAdicionalesOpc}</label>
                     <textarea value={notas} onChange={(e) => onNotas(e.target.value)}
                         placeholder="Información extra para el médico" rows={2} maxLength={1000}
                         className="w-full px-4 py-3 text-sm bg-white rounded-lg border border-gray-200 focus:border-sky-main outline-none resize-none" />
@@ -805,12 +813,12 @@ const PasoHorario = ({
                 )}
 
                 <div className="bg-sky-soft rounded-lg p-4">
-                    <p className="text-xs font-bold text-sky-deep mb-2">RESUMEN DE TU CITA</p>
+                    <p className="text-xs font-bold text-sky-deep mb-2">{t.resumenCita}</p>
                     <ul className="text-sm text-ink-soft space-y-1">
-                        <li>📋 <strong>Especialidad:</strong> {especialidad.nombre}</li>
-                        <li>👨‍⚕️ <strong>Médico:</strong> Dr. {medico.nombres} {medico.apellidos}</li>
-                        <li>📅 <strong>Fecha:</strong> {formatearFecha(fecha)}</li>
-                        <li>⏰ <strong>Hora:</strong> {formatearHora(horaSel.hora)}</li>
+                        <li>📋 <strong>{t.especialidad}:</strong> {especialidad.nombre}</li>
+                        <li>👨‍⚕️ <strong>{t.medico}:</strong> Dr. {medico.nombres} {medico.apellidos}</li>
+                        <li>📅 <strong>{t.fecha}:</strong> {formatearFecha(fecha)}</li>
+                        <li>⏰ <strong>{t.hora}:</strong> {formatearHora(horaSel.hora)}</li>
                     </ul>
                 </div>
                 {error && <div className="bg-danger-soft border border-danger-border rounded-lg p-3"><p className="text-xs text-danger font-semibold">⚠ {error}</p></div>}
@@ -837,19 +845,22 @@ const PasoHorario = ({
 };
 
 // ============== ÉXITO ==============
-const ExitoReserva = ({ especialidad, fecha, hora }: { especialidad: string; fecha: string; hora: string }) => (
+const ExitoReserva = ({ especialidad, fecha, hora }: { especialidad: string; fecha: string; hora: string }) => {
+    const { t } = useTranslation();
+    return (
     <Card className="p-12 text-center">
         <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-success flex items-center justify-center">
             <svg width="40" height="40" viewBox="0 0 24 24" fill="none">
                 <path d="M5 12 L10 17 L19 8" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
         </div>
-        <h2 className="text-3xl font-extrabold text-blue-deep mb-2">¡Cita reservada!</h2>
-        <p className="text-sm text-mute mb-6">Te esperamos en el Centro de Salud San Genaro</p>
+        <h2 className="text-3xl font-extrabold text-blue-deep mb-2">{t.citaReservadaExito}</h2>
+        <p className="text-sm text-mute mb-6">{t.teEsperamosSanGenaro}</p>
         <div className="inline-block bg-sky-soft rounded-2xl px-6 py-4 mb-6">
             <p className="text-lg font-bold text-sky-deep">{especialidad}</p>
             <p className="text-sm text-ink-soft mt-1">{formatearFecha(fecha)} · {formatearHora(hora)}</p>
         </div>
-        <p className="text-xs text-mute">Redirigiendo a tu inicio...</p>
+        <p className="text-xs text-mute">{t.redirigiendoInicio}</p>
     </Card>
-);
+    );
+};

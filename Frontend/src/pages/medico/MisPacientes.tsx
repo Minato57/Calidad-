@@ -13,6 +13,7 @@ import { Badge } from '../../components/common/Badge';
 
 import { medicoApi } from '../../api/medicoApi';
 import { CitaMedico, PerfilMedico } from '../../types';
+import { useTranslation } from '../../i18n';
 import { formatearFecha, formatearHora, obtenerIniciales } from '../../utils/formatters';
 
 const hoyLocal = () => {
@@ -30,6 +31,7 @@ const calcularEdad = (fechaNac: string | null): string => {
 };
 
 export const MisPacientes = () => {
+    const { t } = useTranslation();
     const hoy = hoyLocal();
     const [fecha, setFecha]       = useState(hoy);
     const [citas, setCitas]       = useState<CitaMedico[]>([]);
@@ -71,7 +73,7 @@ export const MisPacientes = () => {
             <main id="contenido-principal" className="max-w-5xl mx-auto px-6 py-8">
                 <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
                     <div>
-                        <h1 className="text-3xl font-extrabold text-ink">Mis pacientes</h1>
+                        <h1 className="text-3xl font-extrabold text-ink">{t.misPacientes}</h1>
                         <p className="text-sm text-mute mt-1 capitalize">{formatearFecha(fecha)}</p>
                         {medico && (
                             <p className="text-xs text-sky-deep font-semibold mt-1">
@@ -81,14 +83,14 @@ export const MisPacientes = () => {
                         )}
                     </div>
                     <div className="flex gap-3">
-                        <Stat label="PENDIENTES" valor={pendientes} color="text-sky-main" />
-                        <Stat label="ATENDIDOS" valor={atendidos} color="text-success" />
+                        <Stat label={t.pendientes.toUpperCase()} valor={pendientes} color="text-sky-main" />
+                        <Stat label={t.atendidos.toUpperCase()} valor={atendidos} color="text-success" />
                     </div>
                 </div>
 
                 <Card className="p-4 mb-6">
                     <div className="flex flex-wrap items-center gap-3">
-                        <label htmlFor="fecha-medico" className="text-sm font-semibold text-ink-soft">Fecha:</label>
+                        <label htmlFor="fecha-medico" className="text-sm font-semibold text-ink-soft">{t.fecha}:</label>
                         <input
                             id="fecha-medico" type="date" value={fecha}
                             onChange={(e) => setFecha(e.target.value || hoy)}
@@ -109,7 +111,7 @@ export const MisPacientes = () => {
                 ) : errorCarga ? (
                     <Card className="p-8 text-center"><p role="alert" className="text-danger text-sm font-semibold">{errorCarga}</p></Card>
                 ) : citas.length === 0 ? (
-                    <Card className="p-12 text-center"><p className="text-mute text-sm">No tienes pacientes para esta fecha</p></Card>
+                    <Card className="p-12 text-center"><p className="text-mute text-sm">{t.noPacientesDia}</p></Card>
                 ) : (
                     <ul className="space-y-3">
                         {citas.map(c => (
@@ -146,7 +148,7 @@ export const MisPacientes = () => {
                                             )}
                                             {c.atendida ? (
                                                 <>
-                                                    <Badge variante="success">Atendido</Badge>
+                                                    <Badge variante="success">{t.atendidos}</Badge>
                                                     <span className="text-[11px] text-mute">
                                                         {c.correo_enviado ? 'Receta enviada por correo' : 'Correo no enviado'}
                                                     </span>
@@ -188,6 +190,7 @@ const ModalAtencion = ({ cita, onCerrar, onGuardada }: {
     onCerrar: () => void;
     onGuardada: (r: { mensaje: string; correo_enviado?: boolean }) => void;
 }) => {
+    const { t } = useTranslation();
     const [diagnostico, setDiagnostico]   = useState('');
     const [receta, setReceta]             = useState('');
     const [indicaciones, setIndicaciones] = useState('');
@@ -228,19 +231,19 @@ const ModalAtencion = ({ cita, onCerrar, onGuardada }: {
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onMouseDown={(e) => { if (e.target === e.currentTarget && !enviando) onCerrar(); }}>
             <div role="dialog" aria-modal="true" aria-labelledby="titulo-atencion" className="w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl">
-                <h2 id="titulo-atencion" className="text-xl font-extrabold text-blue-deep">Registrar atención</h2>
+                <h2 id="titulo-atencion" className="text-xl font-extrabold text-blue-deep">{t.guardarAtencion}</h2>
                 <p className="text-sm text-mute mb-4">
                     {cita.paciente_nombres} {cita.paciente_apellidos} · DNI {cita.paciente_dni}
                 </p>
 
                 <form onSubmit={enviar} className="space-y-4">
                     <div>
-                        <label htmlFor="diagnostico" className="block text-xs font-semibold text-ink-soft mb-2">Diagnóstico *</label>
+                        <label htmlFor="diagnostico" className="block text-xs font-semibold text-ink-soft mb-2">{t.diagnostico} *</label>
                         <textarea id="diagnostico" value={diagnostico} onChange={(e) => setDiagnostico(e.target.value)}
                             rows={3} required maxLength={2000} autoFocus className={campo} />
                     </div>
                     <div>
-                        <label htmlFor="receta" className="block text-xs font-semibold text-ink-soft mb-2">Receta / tratamiento</label>
+                        <label htmlFor="receta" className="block text-xs font-semibold text-ink-soft mb-2">{t.receta}</label>
                         <textarea id="receta" value={receta} onChange={(e) => setReceta(e.target.value)}
                             rows={4} maxLength={3000} placeholder="Ej: Paracetamol 500 mg, 1 tableta cada 8 horas por 3 días" className={campo} />
                     </div>
@@ -258,7 +261,7 @@ const ModalAtencion = ({ cita, onCerrar, onGuardada }: {
                     {error && <p role="alert" className="text-xs text-danger font-semibold">{error}</p>}
 
                     <div className="flex gap-3 justify-end">
-                        <Boton type="button" variante="secondary" onClick={onCerrar} disabled={enviando}>Cancelar</Boton>
+                        <Boton type="button" variante="secondary" onClick={onCerrar} disabled={enviando}>{t.cancelar}</Boton>
                         <Boton type="submit" disabled={enviando || !diagnostico.trim()}>
                             {enviando ? 'Guardando...' : 'Guardar y enviar receta'}
                         </Boton>

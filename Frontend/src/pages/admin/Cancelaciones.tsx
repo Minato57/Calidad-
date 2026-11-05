@@ -8,9 +8,11 @@ import { Sidebar } from '../../components/layout/Sidebar';
 import { Card } from '../../components/common/Card';
 import { Boton } from '../../components/common/Boton';
 
+import { useTranslation } from '../../i18n';
 import { adminApi } from '../../api/adminApi';
 
 export const Cancelaciones = () => {
+    const { t } = useTranslation();
     const [limite, setLimite]       = useState(3);
     const [dias, setDias]           = useState(15);
     const [cargando, setCargando]   = useState(true);
@@ -53,10 +55,8 @@ export const Cancelaciones = () => {
             <div className="flex">
                 <Sidebar />
                 <main id="contenido-principal" className="flex-1 p-8 max-w-3xl">
-                    <h1 className="text-3xl font-extrabold text-ink mb-1">Configurar cancelaciones</h1>
-                    <p className="text-sm text-mute mb-6">
-                        Define los límites de cancelaciones de último momento (menos de 24h de anticipación)
-                    </p>
+                    <h1 className="text-3xl font-extrabold text-ink mb-1">{t.configurarCancelaciones}</h1>
+                    <p className="text-sm text-mute mb-6">{t.configurarCancelacionesSub}</p>
 
                     {cargando ? <Card className="p-8 text-center text-mute text-sm">Cargando...</Card> : (
                         <div className="space-y-6">

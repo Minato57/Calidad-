@@ -11,6 +11,7 @@ import { Input } from '../../components/common/Input';
 import { Badge } from '../../components/common/Badge';
 import { ModalProgramar } from '../../components/admin/ModalProgramar';
 
+import { useTranslation } from '../../i18n';
 import { adminApi } from '../../api/adminApi';
 import { Especialidad, Medico } from '../../types';
 
@@ -20,6 +21,7 @@ type ObjetoProgramar =
     | null;
 
 export const Especialidades = () => {
+    const { t } = useTranslation();
     const [especialidades, setEspecialidades] = useState<Especialidad[]>([]);
     const [medicos, setMedicos]               = useState<Medico[]>([]);
     const [cargando, setCargando]             = useState(true);
@@ -165,7 +167,7 @@ export const Especialidades = () => {
                 <main id="contenido-principal" className="flex-1 p-8 max-w-5xl">
                     <div className="flex items-start justify-between mb-6">
                         <div>
-                            <h1 className="text-3xl font-extrabold text-ink mb-1">Especialidades y médicos</h1>
+                            <h1 className="text-3xl font-extrabold text-ink mb-1">{t.especialidadesTitulo}</h1>
                             <p className="text-sm text-mute">Gestiona las especialidades, el cuerpo médico y su disponibilidad</p>
                         </div>
                         <Boton variante="secondary" onClick={ejecutarRevision} disabled={revisando}>
@@ -176,7 +178,7 @@ export const Especialidades = () => {
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         {/* Crear especialidad */}
                         <Card className="p-6">
-                            <h2 className="text-lg font-bold text-blue-deep mb-4">Nueva especialidad</h2>
+                            <h2 className="text-lg font-bold text-blue-deep mb-4">{t.nuevaEspecialidad}</h2>
                             <form onSubmit={crearEspecialidad} className="space-y-3">
                                 <Input label="Nombre" value={nombreEsp} onChange={(e) => setNombreEsp(e.target.value)} placeholder="Cardiología" required />
                                 <Input label="Descripción" value={descEsp} onChange={(e) => setDescEsp(e.target.value)} placeholder="Atención del corazón" required />
@@ -198,12 +200,12 @@ export const Especialidades = () => {
 
                         {/* Crear médico */}
                         <Card className="p-6">
-                            <h2 className="text-lg font-bold text-blue-deep mb-4">Nuevo médico</h2>
+                            <h2 className="text-lg font-bold text-blue-deep mb-4">{t.nuevoMedico}</h2>
                             <form onSubmit={crearMedico} className="space-y-3">
                                 <Input label="Nombres" value={nombresMed} onChange={(e) => setNombresMed(e.target.value)} placeholder="Andrea" required />
                                 <Input label="Apellidos" value={apellidosMed} onChange={(e) => setApellidosMed(e.target.value)} placeholder="Torres" required />
                                 <div>
-                                    <label className="block text-xs font-semibold text-ink-soft mb-2">Especialidad</label>
+                                    <label className="block text-xs font-semibold text-ink-soft mb-2">{t.especialidad}</label>
                                     <select value={espMed} onChange={(e) => setEspMed(Number(e.target.value))}
                                         className="w-full px-4 py-3 text-sm bg-white rounded-lg border border-gray-200 focus:border-sky-main outline-none">
                                         <option value={0}>Selecciona...</option>
@@ -216,7 +218,7 @@ export const Especialidades = () => {
                                 </label>
                                 {conCuenta && (
                                     <div className="space-y-3 border-l-2 border-sky-main pl-3">
-                                        <Input label="Correo" type="email" value={medCorreo} onChange={(e) => setMedCorreo(e.target.value)} placeholder="medico@centro.pe" required />
+                                        <Input label={t.correoElectronico} type="email" value={medCorreo} onChange={(e) => setMedCorreo(e.target.value)} placeholder="medico@centro.pe" required />
                                         <Input label="Contraseña" type="password" value={medPass} onChange={(e) => setMedPass(e.target.value)} placeholder="Mínimo 6 caracteres" required />
                                         <Input label="DNI" value={medDni} onChange={(e) => setMedDni(e.target.value.replace(/\D/g, '').slice(0, 8))} placeholder="8 dígitos" required />
                                         <Input label="Teléfono" value={medTel} onChange={(e) => setMedTel(e.target.value)} placeholder="987654321" required />
@@ -291,7 +293,7 @@ export const Especialidades = () => {
                                 <div className="md:col-span-2">
                                     {msgCuenta && <p role="alert" className="text-xs font-semibold text-danger mb-2">{msgCuenta}</p>}
                                     <div className="flex gap-2">
-                                        <Boton type="button" variante="secondary" onClick={() => setCuentaPara(null)}>Cancelar</Boton>
+                                        <Boton type="button" variante="secondary" onClick={() => setCuentaPara(null)}>{t.cancelar}</Boton>
                                         <Boton type="submit">Crear acceso</Boton>
                                     </div>
                                 </div>

@@ -3,6 +3,7 @@
 // =================================================================
 import { ReactNode } from 'react';
 import { EstadoCita } from '../../types';
+import { useTranslation } from '../../i18n';
 
 interface BadgeProps {
     children: ReactNode;
@@ -41,13 +42,14 @@ export const Badge = ({ children, variante = 'sky', conPunto = false }: BadgePro
  * Helper: convierte un estado de cita a su badge correspondiente
  */
 export const BadgeEstadoCita = ({ estado }: { estado: EstadoCita }) => {
+    const { t } = useTranslation();
     const config = {
-        RESERVADA:  { variante: 'sky' as const,     texto: 'RESERVADA',  conPunto: true },
-        CONFIRMADA: { variante: 'sky' as const,     texto: 'CONFIRMADA', conPunto: true },
-        EN_CURSO:   { variante: 'warning' as const, texto: 'EN CURSO',   conPunto: true },
-        COMPLETADA: { variante: 'success' as const, texto: '✓ COMPLETADA', conPunto: false },
-        FALTA:      { variante: 'danger' as const,  texto: '✕ FALTA',    conPunto: false },
-        CANCELADA:  { variante: 'gray' as const,    texto: 'CANCELADA',  conPunto: false },
+        RESERVADA:  { variante: 'sky' as const,     texto: t.estadoReservada,  conPunto: true },
+        CONFIRMADA: { variante: 'sky' as const,     texto: t.estadoConfirmada, conPunto: true },
+        EN_CURSO:   { variante: 'warning' as const, texto: t.estadoEnCurso,    conPunto: true },
+        COMPLETADA: { variante: 'success' as const, texto: `✓ ${t.estadoCompletada}`, conPunto: false },
+        FALTA:      { variante: 'danger' as const,  texto: `✕ ${t.estadoFalta}`,       conPunto: false },
+        CANCELADA:  { variante: 'gray' as const,    texto: t.estadoCancelada,  conPunto: false },
     };
     const c = (config as Record<string, any>)[estado] ?? config.RESERVADA;
 

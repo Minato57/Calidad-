@@ -52,6 +52,37 @@ export interface TraduccionEsquema {
     cancelandoCita: string;
     volver: string;
 
+    // Wizard Reservar Cita (Completo)
+    volverAlInicio: string;
+    agendarNuevaCitaSub: string;
+    paso1Especialidad: string;
+    paso2Medico: string;
+    paso3Fecha: string;
+    paso4HoraMotivo: string;
+    queEspecialidadNecesitas: string;
+    seleccionaOpcionContinuar: string;
+    eligeTuMedico: string;
+    noMedicosDisponibles: string;
+    atras: string;
+    continuar: string;
+    eligeFechaCita: string;
+    disponible: string;
+    sinCupo: string;
+    seleccionado: string;
+    eligeHoraMotivo: string;
+    horariosDisponibles: string;
+    noHorariosFecha: string;
+    datosDelMenor: string;
+    especialidadParaMenores: string;
+    registrarOtroMenor: string;
+    motivoConsultaReq: string;
+    placeholderMotivo: string;
+    notasAdicionalesOpc: string;
+    resumenCita: string;
+    citaReservadaExito: string;
+    teEsperamosSanGenaro: string;
+    redirigiendoInicio: string;
+
     // Dashboard Paciente
     hola: string;
     cuidamosTuSalud: string;
@@ -151,6 +182,49 @@ export interface TraduccionEsquema {
     noCitasFiltros: string;
 
     // Días y meses para fechas
+    
+    // Estados adicionales y botones comunes
+    estadoEnCurso: string;
+    limpiar: string;
+    quitarFiltros: string;
+
+    // Médico
+    misPacientes: string;
+    pendientes: string;
+    atendidos: string;
+    atenderPaciente: string;
+    diagnostico: string;
+    receta: string;
+    guardarAtencion: string;
+    noPacientesDia: string;
+
+    // Administración
+    configurarSanciones: string;
+    configurarSancionesSub: string;
+    limiteInasistencias: string;
+    diasSuspension: string;
+    configurarCancelaciones: string;
+    configurarCancelacionesSub: string;
+    cancelacionMasivaTitulo: string;
+    cancelacionMasivaSub: string;
+    cuentasAdmisionTitulo: string;
+    cuentasAdmisionSub: string;
+    correosNotificacionTitulo: string;
+    correosNotificacionSub: string;
+    especialidadesTitulo: string;
+    guardarCambios: string;
+    cambiosGuardados: string;
+    nuevaEspecialidad: string;
+    nuevoMedico: string;
+    nombre: string;
+    descripcion: string;
+    crear: string;
+    cancelar: string;
+    eliminar: string;
+    activo: string;
+    inactivo: string;
+    acciones: string;
+
     diasSemana: string[];
     meses: string[];
 }

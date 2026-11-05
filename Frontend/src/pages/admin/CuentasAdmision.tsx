@@ -10,11 +10,13 @@ import { Boton } from '../../components/common/Boton';
 import { Input } from '../../components/common/Input';
 import { Badge } from '../../components/common/Badge';
 
+import { useTranslation } from '../../i18n';
 import { adminApi } from '../../api/adminApi';
 import { UsuarioAdmision } from '../../types';
 import { obtenerIniciales } from '../../utils/formatters';
 
 export const CuentasAdmision = () => {
+    const { t } = useTranslation();
     const [cuentas, setCuentas]   = useState<UsuarioAdmision[]>([]);
     const [cargando, setCargando] = useState(true);
 
@@ -67,7 +69,7 @@ export const CuentasAdmision = () => {
             <div className="flex">
                 <Sidebar />
                 <main id="contenido-principal" className="flex-1 p-8 max-w-4xl">
-                    <h1 className="text-3xl font-extrabold text-ink mb-1">Cuentas de admisión</h1>
+                    <h1 className="text-3xl font-extrabold text-ink mb-1">{t.cuentasAdmisionTitulo}</h1>
                     <p className="text-sm text-mute mb-6">Crea y gestiona el personal de ventanilla</p>
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -78,8 +80,8 @@ export const CuentasAdmision = () => {
                                 <Input label="Correo" type="email" value={correo} onChange={(e) => setCorreo(e.target.value)} placeholder="admision2@carenest.pe" required />
                                 <Input label="Contraseña" type="password" value={contrasena} onChange={(e) => setContrasena(e.target.value)} placeholder="Mínimo 6 caracteres" required />
                                 <div className="grid grid-cols-2 gap-3">
-                                    <Input label="Nombres" value={nombres} onChange={(e) => setNombres(e.target.value)} required />
-                                    <Input label="Apellidos" value={apellidos} onChange={(e) => setApellidos(e.target.value)} required />
+                                    <Input label={t.nombres} value={nombres} onChange={(e) => setNombres(e.target.value)} required />
+                                    <Input label={t.apellidos} value={apellidos} onChange={(e) => setApellidos(e.target.value)} required />
                                 </div>
                                 <div className="grid grid-cols-2 gap-3">
                                     <Input label="DNI" value={dni} onChange={(e) => setDni(e.target.value.replace(/\D/g, ''))} maxLength={8} required />

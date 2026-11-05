@@ -196,7 +196,7 @@ export const MisCitas = () => {
                             {t.sinCitasRegistradas}
                         </p>
                         {hayFiltrosActivos
-                            ? <Boton variante="secondary" onClick={limpiarFiltros}>Quitar filtros</Boton>
+                            ? <Boton variante="secondary" onClick={limpiarFiltros}>{t.quitarFiltros}</Boton>
                             : <Boton onClick={() => navigate('/paciente/reservar')}>{t.agendarMiPrimeraCita}</Boton>
                         }
                     </Card>
