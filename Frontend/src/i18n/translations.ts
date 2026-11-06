@@ -292,6 +292,14 @@ export const traducciones: Record<Idioma, TraduccionEsquema> = {
         desdeQueFechaVuelve: '¿Desde qué fecha vuelve a atender?',
         cerrar: 'Cerrar',
 
+        
+        fuenteDislexia: 'Tipografía para dislexia',
+        lectorVoz: 'Lector de pantalla (Voz)',
+        leyendo: 'Leyendo en voz alta...',
+        detenerLector: 'Detener voz',
+        cursorGrande: 'Cursor grande y resaltar enlaces',
+        opcionesDiscapacidad: '5 OPCIONES PARA DISCAPACIDAD',
+
         diasSemana: ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'],
         meses: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'],
     },
@@ -578,6 +586,14 @@ export const traducciones: Record<Idioma, TraduccionEsquema> = {
         desdeQueFechaDeja: 'From what date will service stop?',
         desdeQueFechaVuelve: 'From what date will service resume?',
         cerrar: 'Close',
+
+        
+        fuenteDislexia: 'Dyslexia-friendly font',
+        lectorVoz: 'Screen reader (Voice)',
+        leyendo: 'Reading out loud...',
+        detenerLector: 'Stop voice',
+        cursorGrande: 'Large cursor & highlight links',
+        opcionesDiscapacidad: '5 DISABILITY OPTIONS',
 
         diasSemana: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
         meses: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
@@ -866,6 +882,14 @@ export const traducciones: Record<Idioma, TraduccionEsquema> = {
         desdeQueFechaVuelve: '¿Mayqin p\'unchawmantam kaqmanta hampinqa?',
         cerrar: 'Wisq\'ay',
 
+        
+        fuenteDislexia: 'Dislexiapaq qillqa',
+        lectorVoz: 'Rimaq ñawinchaq (Kunka)',
+        leyendo: 'Kunkawan ñawinchachkan...',
+        detenerLector: 'Kunkata sayachiy',
+        cursorGrande: 'Hatun t\'uqsina t\'inkikunapas',
+        opcionesDiscapacidad: '5 DISCAPACIDADPAQ ALLICHAWIKUNA',
+
         diasSemana: ['Intichaw', 'Killachaw', 'Atipachaw', 'Qoyllurchaw', 'Illapachaw', 'Ch\'askachaw', 'K\'uychichaw'],
         meses: ['Qhapaq Raymi', 'Hatun Puquy', 'Pawqar Waray', 'Ayriway', 'Aymuray', 'Inti Raymi', 'Anta Sitwa', 'Qhapaq Sitwa', 'Tarpuy Killa', 'Kantaray', 'Ayamarq\'a', 'Qhapaq Raymi'],
     },
@@ -1152,6 +1176,14 @@ export const traducciones: Record<Idioma, TraduccionEsquema> = {
         desdeQueFechaDeja: '¿Kuna urutpacha janis qullxani?',
         desdeQueFechaVuelve: '¿Kuna urutpacha wasitampi qullxani?',
         cerrar: 'Jiskt\'antaña',
+
+        
+        fuenteDislexia: 'Dislexiataki qillqa',
+        lectorVoz: 'Arusuña uñch\'ukiri',
+        leyendo: 'Aruwan aruskipaskawa...',
+        detenerLector: 'Aru sayt\'ayaña',
+        cursorGrande: 'Jach\'a t\'uqsiri t\'inkinakampi',
+        opcionesDiscapacidad: '5 DISCAPACIDADATAKI LURAÑANAKA',
 
         diasSemana: ['Willka uru', 'Phaxsi uru', 'Saxra uru', 'Pacha uru', 'Illapa uru', 'Ñanqha uru', 'Samar uru'],
         meses: ['Chinuqa', 'Anata', 'Achuqa', 'Qasawi', 'Llamayu', 'Jach\'a mara', 'Puriy', 'Thaya phaxsi', 'Taqsaw phaxsi', 'Taypi sata', 'Lapaka', 'Jallu qallta'],

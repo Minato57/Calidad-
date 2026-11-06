@@ -302,6 +302,15 @@ export interface TraduccionEsquema {
     desdeQueFechaVuelve: string;
     cerrar: string;
 
+    
+    // 5 Opciones Discapacidad ODS 10
+    fuenteDislexia: string;
+    lectorVoz: string;
+    leyendo: string;
+    detenerLector: string;
+    cursorGrande: string;
+    opcionesDiscapacidad: string;
+
     diasSemana: string[];
     meses: string[];
 }

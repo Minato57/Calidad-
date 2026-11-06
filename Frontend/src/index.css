@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -39,6 +40,7 @@ input[type="number"]::-webkit-inner-spin-button {
     -webkit-appearance: none;
     margin: 0;
 }
+
 /* ===== ODS 10 – Accesibilidad ===== */
 .skip-link {
     position: absolute;
@@ -73,4 +75,23 @@ html.alto-contraste a { color: #FFD60A; }
 
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
+/* Tipografia para Dislexia */
+html.fuente-dislexia body,
+html.fuente-dislexia * {
+    font-family: 'Lexend', 'Comic Sans MS', sans-serif !important;
+    letter-spacing: 0.03em !important;
+    word-spacing: 0.06em !important;
+}
+
+/* Cursor grande y resaltar enlaces */
+html.cursor-grande,
+html.cursor-grande * {
+    cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='36' viewBox='0 0 24 24' fill='%230284c7' stroke='white' stroke-width='2'%3E%3Cpath d='M3 3l7 18 3-7 7-3L3 3z'/%3E%3C/svg%3E"), auto !important;
+}
+html.cursor-grande a,
+html.cursor-grande button {
+    text-decoration: underline !important;
+    text-decoration-thickness: 2px !important;
 }
