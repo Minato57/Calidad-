@@ -73,6 +73,7 @@ export class MedicoPanelRepository {
             paciente_dni: r.paciente_dni ?? '',
             fecha_nacimiento: r.fecha_nacimiento ? fechaLocalStr(r.fecha_nacimiento) : null,
             titular_nombre: `${r.titular_nombres ?? ''} ${r.titular_apellidos ?? ''}`.trim(),
+            titular_correo: r.titular_correo ?? null,
             tiene_correo: !!r.titular_correo,
             atendida: !!r.id_atencion,
             correo_enviado: !!r.correo_enviado,
@@ -135,7 +136,8 @@ export class MedicoPanelRepository {
 
     async verificarCodigo(codigo: string) {
         const rows = await AppDataSource.query(
-            `SELECT a.fecha_atencion, m.nombres, m.apellidos, mu.cmp, e.nombre AS especialidad
+            `SELECT a.fecha_atencion, a.diagnostico, a.receta, a.indicaciones,
+                    m.nombres, m.apellidos, mu.cmp, e.nombre AS especialidad
              FROM atenciones a
              INNER JOIN medicos m ON m.id_medico = a.id_medico
              INNER JOIN especialidades e ON e.id_especialidad = m.id_especialidad
@@ -149,6 +151,9 @@ export class MedicoPanelRepository {
             medico: `${r.nombres} ${r.apellidos}`,
             cmp: r.cmp ?? null,
             especialidad: r.especialidad,
+            diagnostico: r.diagnostico,
+            receta: r.receta ?? null,
+            indicaciones: r.indicaciones ?? null,
             fecha_atencion: new Date(r.fecha_atencion).toISOString(),
         };
     }

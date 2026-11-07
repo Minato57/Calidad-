@@ -8,6 +8,7 @@ export interface AtencionPayload {
     diagnostico: string;
     receta?: string;
     indicaciones?: string;
+    correo_destino?: string;
 }
 
 export const medicoApi = {

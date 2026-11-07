@@ -191,11 +191,12 @@ const ModalAtencion = ({ cita, onCerrar, onGuardada }: {
     onGuardada: (r: { mensaje: string; correo_enviado?: boolean }) => void;
 }) => {
     const { t } = useTranslation();
-    const [diagnostico, setDiagnostico]   = useState('');
-    const [receta, setReceta]             = useState('');
-    const [indicaciones, setIndicaciones] = useState('');
-    const [enviando, setEnviando]         = useState(false);
-    const [error, setError]               = useState<string | null>(null);
+    const [diagnostico, setDiagnostico]     = useState('');
+    const [receta, setReceta]               = useState('');
+    const [indicaciones, setIndicaciones]   = useState('');
+    const [correoDestino, setCorreoDestino] = useState(cita.titular_correo || '');
+    const [enviando, setEnviando]           = useState(false);
+    const [error, setError]                 = useState<string | null>(null);
 
     useEffect(() => {
         const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && !enviando) onCerrar(); };
@@ -212,6 +213,7 @@ const ModalAtencion = ({ cita, onCerrar, onGuardada }: {
                 diagnostico: diagnostico.trim(),
                 receta: receta.trim() || undefined,
                 indicaciones: indicaciones.trim() || undefined,
+                correo_destino: correoDestino.trim() || undefined,
             });
             if (res.ok) onGuardada(res);
             else setError(res.mensaje);
@@ -259,18 +261,31 @@ const ModalAtencion = ({ cita, onCerrar, onGuardada }: {
                         <textarea id="indicaciones" value={indicaciones} onChange={(e) => setIndicaciones(e.target.value)}
                             rows={2} maxLength={2000} className={campo} />
                     </div>
+                    <div>
+                        <label htmlFor="correo-destino" className="block text-xs font-semibold text-ink-soft mb-2">
+                            Correo del Paciente (Envío de Receta Digital)
+                        </label>
+                        <input
+                            id="correo-destino"
+                            type="email"
+                            value={correoDestino}
+                            onChange={(e) => setCorreoDestino(e.target.value)}
+                            placeholder="paciente@correo.com"
+                            className="w-full px-4 py-2.5 text-sm bg-white rounded-lg border border-gray-200 focus:border-sky-main outline-none"
+                        />
+                        <p className="text-[11px] text-mute mt-1">
+                            {correoDestino
+                                ? 'La receta electrónica con firma digital se enviará automáticamente a esta dirección.'
+                                : 'Si se deja vacío, la atención se registrará sin envío de correo electrónico.'}
+                        </p>
+                    </div>
 
-                    <p className="text-[11px] text-mute">
-                        {cita.tiene_correo
-                            ? 'Al guardar, se enviará la receta al correo del paciente con tu firma digital.'
-                            : 'El paciente no tiene correo registrado: la atención se guardará sin envío.'}
-                    </p>
                     {error && <p role="alert" className="text-xs text-danger font-semibold">{error}</p>}
 
                     <div className="flex gap-3 justify-end">
                         <Boton type="button" variante="secondary" onClick={onCerrar} disabled={enviando}>{t.cancelar}</Boton>
                         <Boton type="submit" disabled={enviando || !diagnostico.trim()}>
-                            {enviando ? 'Guardando...' : 'Guardar y enviar receta'}
+                            {enviando ? 'Guardando...' : 'Guardar y emitir receta'}
                         </Boton>
                     </div>
                 </form>

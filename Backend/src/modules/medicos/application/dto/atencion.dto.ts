@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class AtencionDTO {
     @IsNotEmpty({ message: 'El diagnóstico es obligatorio' })
@@ -15,4 +15,9 @@ export class AtencionDTO {
     @IsString()
     @MaxLength(2000, { message: 'Las indicaciones no pueden superar 2000 caracteres' })
     indicaciones?: string;
+
+    @IsOptional()
+    @IsEmail({}, { message: 'El correo de destino no tiene un formato válido' })
+    @MaxLength(150, { message: 'El correo no puede superar 150 caracteres' })
+    correo_destino?: string;
 }

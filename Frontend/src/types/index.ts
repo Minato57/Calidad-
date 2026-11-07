@@ -285,6 +285,7 @@ export interface CitaMedico {
     paciente_dni: string;
     fecha_nacimiento: string | null;
     titular_nombre: string;
+    titular_correo?: string | null;
     tiene_correo: boolean;
     atendida: boolean;
     correo_enviado: boolean;

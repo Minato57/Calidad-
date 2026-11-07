@@ -70,6 +70,7 @@ export class MedicoService {
         const diagnostico  = dto.diagnostico.trim();
         const receta       = dto.receta?.trim() || null;
         const indicaciones = dto.indicaciones?.trim() || null;
+        const correoDestino = dto.correo_destino?.trim() || cita.correo || null;
         const emitido      = new Date();
 
         // Firma digital: HMAC del contenido clínico + identidad del médico.
@@ -79,13 +80,13 @@ export class MedicoService {
 
         const idAtencion = await this.repo.guardarAtencion({
             id_cita: cita.id_cita, id_medico: perfil.id_medico,
-            diagnostico, receta, indicaciones, codigo, correo: cita.correo,
+            diagnostico, receta, indicaciones, codigo, correo: correoDestino,
         });
 
         // Envío por correo (no bloquea el guardado: si falla, queda registrado como no enviado).
         let correoEnviado = false;
-        if (cita.correo) {
-            const base = process.env.BACKEND_PUBLIC_URL?.replace(/\/$/, '');
+        if (correoDestino) {
+            const base = process.env.BACKEND_PUBLIC_URL?.replace(/\/$/, '') || 'http://localhost:3000';
             const html = construirCorreoReceta({
                 paciente: cita.paciente, paciente_dni: cita.paciente_dni,
                 saludoA: cita.titular_nombres || cita.paciente,
@@ -93,20 +94,30 @@ export class MedicoService {
                 medico: `${perfil.nombres} ${perfil.apellidos}`, cmp: perfil.cmp,
                 especialidad: perfil.especialidad,
                 diagnostico, receta, indicaciones, codigo, fechaEmision: emitido,
-                urlVerificacion: base ? `${base}/medico/verificar/${codigo}` : null,
+                urlVerificacion: `${base}/medico/verificar/${codigo}`,
             });
             correoEnviado = await this.mailer.enviarCorreoDirecto(
-                cita.correo, `Diagnóstico y receta médica - ${perfil.especialidad}`, html,
+                correoDestino, `Diagnóstico y receta médica - ${perfil.especialidad}`, html,
             );
             if (correoEnviado) await this.repo.marcarCorreoEnviado(idAtencion);
         }
 
+        let mensajeFinal = 'Atención registrada exitosamente';
+        if (correoDestino) {
+            mensajeFinal = correoEnviado
+                ? `Atención registrada y receta enviada a ${correoDestino}`
+                : `Atención registrada, pero no se pudo despachar el correo a ${correoDestino} (revisa remitentes SMTP configurados)`;
+        } else {
+            mensajeFinal = 'Atención registrada exitosamente (sin correo de paciente)';
+        }
+
         return {
             ok: true, status: 201,
-            mensaje: correoEnviado
-                ? 'Atención registrada y receta enviada por correo'
-                : 'Atención registrada, pero no se pudo enviar el correo (revisa los remitentes configurados)',
-            id_atencion: idAtencion, codigo_verificacion: codigo, correo_enviado: correoEnviado,
+            mensaje: mensajeFinal,
+            id_atencion: idAtencion,
+            codigo_verificacion: codigo,
+            correo_enviado: correoEnviado,
+            correo_destino: correoDestino,
         };
     }
 
