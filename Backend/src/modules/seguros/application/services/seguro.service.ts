@@ -91,20 +91,25 @@ class ProveedorScraper implements ProveedorSeguro {
         }
         texto = texto.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ');
 
-        if (/captcha/i.test(texto) && !/ACTIVO/i.test(texto)) {
+        const textoUpper = texto.toUpperCase();
+        if (textoUpper.includes('CAPTCHA') && !textoUpper.includes('ACTIVO')) {
             throw new Error('El portal solicita captcha');
         }
 
-        const reInactivo = new RegExp(
-            process.env.SIS_REGEX_INACTIVO || 'NO\\s+SE\\s+ENCUENTRA|NO\\s+ENCUENTRA|NO\\s+ASEGURADO|INACTIVO|SIN\\s+SEGURO|NO\\s+REGISTRA',
-            'i',
-        );
-        const reActivo = new RegExp(process.env.SIS_REGEX_ACTIVO || 'ACTIVO', 'i');
+        const frasesInactivo = [
+            'NO SE ENCUENTRA',
+            'NO ENCUENTRA',
+            'NO ASEGURADO',
+            'INACTIVO',
+            'SIN SEGURO',
+            'NO REGISTRA',
+        ];
+        const esInactivo = frasesInactivo.some(frase => textoUpper.includes(frase));
 
-        if (reInactivo.test(texto)) {
+        if (esInactivo) {
             return { tipo: 'NINGUNO' as TipoSeguro, tiene_seguro: false, fuente: 'SIS_SCRAPER' as const, verificado: true };
         }
-        if (reActivo.test(texto)) {
+        if (textoUpper.includes('ACTIVO')) {
             return { tipo: 'SIS' as TipoSeguro, tiene_seguro: true, fuente: 'SIS_SCRAPER' as const, verificado: true };
         }
         throw new Error('No se pudo interpretar la respuesta del portal');
