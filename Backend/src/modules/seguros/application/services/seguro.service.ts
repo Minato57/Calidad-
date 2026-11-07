@@ -73,11 +73,23 @@ class ProveedorScraper implements ProveedorSeguro {
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
         const html = await resp.text();
 
-        // Texto plano (quita etiquetas) para evaluar las expresiones (evita backtracking superlineal S8786).
-        const texto = html.replace(/<script\b[^>]*>(?:[^<]|<(?!\/script>))*<\/script>/gi, ' ')
-                          .replace(/<style\b[^>]*>(?:[^<]|<(?!\/style>))*<\/style>/gi, ' ')
-                          .replace(/<[^>]+>/g, ' ')
-                          .replace(/\s+/g, ' ');
+        // Limpieza de script/style de forma segura en tiempo lineal sin regex backtracking (Sonar S8786).
+        let texto = html;
+        for (const tag of ['script', 'style']) {
+            const open = `<${tag}`;
+            const close = `</${tag}>`;
+            let idx = texto.toLowerCase().indexOf(open);
+            while (idx !== -1) {
+                const endIdx = texto.toLowerCase().indexOf(close, idx);
+                if (endIdx === -1) {
+                    texto = texto.slice(0, idx);
+                    break;
+                }
+                texto = texto.slice(0, idx) + ' ' + texto.slice(endIdx + close.length);
+                idx = texto.toLowerCase().indexOf(open);
+            }
+        }
+        texto = texto.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ');
 
         if (/captcha/i.test(texto) && !/ACTIVO/i.test(texto)) {
             throw new Error('El portal solicita captcha');

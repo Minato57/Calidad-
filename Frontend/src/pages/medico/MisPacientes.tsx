@@ -229,8 +229,15 @@ const ModalAtencion = ({ cita, onCerrar, onGuardada }: {
     const campo = 'w-full px-4 py-3 text-sm bg-white rounded-lg border border-gray-200 focus:border-sky-main outline-none resize-none';
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onMouseDown={(e) => { if (e.target === e.currentTarget && !enviando) onCerrar(); }}>
-            <div role="dialog" aria-modal="true" aria-labelledby="titulo-atencion" className="w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <button
+                type="button"
+                className="fixed inset-0 bg-black/50 border-0 cursor-default"
+                aria-label="Cerrar modal"
+                tabIndex={-1}
+                onClick={() => { if (!enviando) onCerrar(); }}
+            />
+            <div role="dialog" aria-modal="true" aria-labelledby="titulo-atencion" className="relative z-10 w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl">
                 <h2 id="titulo-atencion" className="text-xl font-extrabold text-blue-deep">{t.guardarAtencion}</h2>
                 <p className="text-sm text-mute mb-4">
                     {cita.paciente_nombres} {cita.paciente_apellidos} · DNI {cita.paciente_dni}
