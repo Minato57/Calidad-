@@ -7,7 +7,6 @@ import {
     IsInt,
     IsPositive,
     IsNotEmpty,
-    IsOptional,
     IsString,
     Matches,
     IsIn,

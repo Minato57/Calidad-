@@ -34,17 +34,17 @@ interface ProveedorSeguro {
 
 // ---------------- Proveedor simulado ----------------
 class ProveedorSimulado implements ProveedorSeguro {
-    async consultar(dni: string) {
+    consultar(dni: string) {
         // DNI terminados en 0-5 → SIS activo; 6-9 → sin seguro (solo demostración).
         const ultimo = Number(dni[dni.length - 1]);
         const tiene = ultimo <= 5;
-        return {
+        return Promise.resolve({
             tipo: (tiene ? 'SIS' : 'NINGUNO') as TipoSeguro,
             tiene_seguro: tiene,
             fuente: 'SIMULADO' as const,
             verificado: false,
             detalle: 'Resultado simulado (modo demostración)',
-        };
+        });
     }
 }
 
@@ -84,7 +84,7 @@ class ProveedorScraper implements ProveedorSeguro {
         }
 
         const reInactivo = new RegExp(
-            process.env.SIS_REGEX_INACTIVO || 'NO\\s+(SE\\s+)?ENCUENTRA|NO\\s+ASEGURADO|INACTIVO|SIN\\s+SEGURO|NO\\s+REGISTRA',
+            process.env.SIS_REGEX_INACTIVO || 'NO\\s+SE\\s+ENCUENTRA|NO\\s+ENCUENTRA|NO\\s+ASEGURADO|INACTIVO|SIN\\s+SEGURO|NO\\s+REGISTRA',
             'i',
         );
         const reActivo = new RegExp(process.env.SIS_REGEX_ACTIVO || 'ACTIVO', 'i');

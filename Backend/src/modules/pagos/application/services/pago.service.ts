@@ -142,7 +142,8 @@ export class PagoService {
         });
         const pref: any = await resp.json().catch(() => ({}));
         if (!resp.ok || !pref.init_point) {
-            console.error('[PAGOS] Error al crear preferencia MP:', resp.status, JSON.stringify(pref));
+            const sanitizedPref = JSON.stringify(pref).replace(/[\r\n]/g, '');
+            console.error('[PAGOS] Error al crear preferencia MP:', resp.status, sanitizedPref);
             await AppDataSource.query(`UPDATE pagos SET estado = 'RECHAZADO' WHERE id_pago = ?`, [idPago]);
             return { ok: false, mensaje: 'No se pudo iniciar el pago con Mercado Pago' };
         }

@@ -94,16 +94,16 @@ export class AuthService {
     // ya verificó que el token era válido antes de llegar aquí, por
     // lo que basta con registrar/confirmar el cierre.
     // ============================================================
-    async logout(idUsuario: number): Promise<{ ok: true; mensaje: string }> {
+    logout(idUsuario: number): Promise<{ ok: true; mensaje: string }> {
         // Punto único donde, a futuro, se podría invalidar la sesión
         // en una lista negra o en la tabla 'sesiones' si se decide
         // llevar registro de sesiones activas.
         void idUsuario;
 
-        return {
+        return Promise.resolve({
             ok: true,
             mensaje: 'Sesión cerrada correctamente',
-        };
+        });
     }
 
     private async obtenerDias(clave: string, porDefecto: number): Promise<number> {

@@ -28,7 +28,7 @@ export class AsistenciaController {
     marcarAsistencia = async (req: Request, res: Response) => {
         const idCita = Number(req.params.id);
 
-        if (!idCita || isNaN(idCita)) {
+        if (!idCita || Number.isNaN(idCita)) {
             return res.status(400).json({ ok: false, mensaje: 'ID de cita inválido' });
         }
 
@@ -46,7 +46,7 @@ export class AsistenciaController {
     marcarInasistencia = async (req: Request, res: Response) => {
         const idCita = Number(req.params.id);
 
-        if (!idCita || isNaN(idCita)) {
+        if (!idCita || Number.isNaN(idCita)) {
             return res.status(400).json({ ok: false, mensaje: 'ID de cita inválido' });
         }
 

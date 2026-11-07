@@ -30,7 +30,7 @@ export class NotificacionController {
         const idNotificacion = Number(req.params.id);
         const idUsuario = req.jwt!.id;
 
-        if (!idNotificacion || isNaN(idNotificacion)) {
+        if (!idNotificacion || Number.isNaN(idNotificacion)) {
             return res.status(400).json({ ok: false, mensaje: 'ID inválido' });
         }
 

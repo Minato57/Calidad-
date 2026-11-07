@@ -83,7 +83,7 @@ export const tiempoRelativo = (fechaIso: string): string => {
     if (!fechaIso) return '';
     const ahora = new Date();
     const fecha = new Date(fechaIso);
-    if (isNaN(fecha.getTime())) return '';
+    if (Number.isNaN(fecha.getTime())) return '';
 
     const diffMs = ahora.getTime() - fecha.getTime();
     const minutos = Math.floor(diffMs / 60000);

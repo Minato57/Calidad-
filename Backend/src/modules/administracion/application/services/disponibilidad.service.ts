@@ -38,11 +38,11 @@ function restarDias(fechaStr: string, dias: number): string {
 }
 
 export class DisponibilidadService {
-    private especialidadRepo = AppDataSource.getRepository(EspecialidadModel);
-    private medicoRepo       = AppDataSource.getRepository(MedicoModel);
-    private citaRepo         = AppDataSource.getRepository(CitaModel);
-    private userRepo         = AppDataSource.getRepository(UserModel);
-    private notifRepo        = AppDataSource.getRepository(NotificacionModel);
+    private readonly especialidadRepo = AppDataSource.getRepository(EspecialidadModel);
+    private readonly medicoRepo       = AppDataSource.getRepository(MedicoModel);
+    private readonly citaRepo         = AppDataSource.getRepository(CitaModel);
+    private readonly userRepo         = AppDataSource.getRepository(UserModel);
+    private readonly notifRepo        = AppDataSource.getRepository(NotificacionModel);
 
     async ejecutarRevisionDiaria() {
         const hoy = hoyStr();

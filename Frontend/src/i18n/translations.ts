@@ -131,6 +131,13 @@ export const traducciones: Record<Idioma, TraduccionEsquema> = {
         filtroFaltas: 'Faltas',
         filtroCanceladas: 'Canceladas',
         sinCitasRegistradas: 'No tienes citas registradas con los filtros seleccionados.',
+        ordenarPor: 'Ordenar por',
+        ordenFechaReciente: 'Horario: Más recientes',
+        ordenFechaAntigua: 'Horario: Más antiguas',
+        ordenEspecialidadAsc: 'Especialidad (A - Z)',
+        ordenEspecialidadDesc: 'Especialidad (Z - A)',
+        ordenMedicoAsc: 'Médico (A - Z)',
+        ordenMedicoDesc: 'Médico (Z - A)',
 
         // Estados de Cita
         estadoReservada: 'Reservada',
@@ -426,6 +433,13 @@ export const traducciones: Record<Idioma, TraduccionEsquema> = {
         filtroFaltas: 'No-shows',
         filtroCanceladas: 'Cancelled',
         sinCitasRegistradas: 'No appointments found with the selected filters.',
+        ordenarPor: 'Sort by',
+        ordenFechaReciente: 'Time: Most recent',
+        ordenFechaAntigua: 'Time: Oldest',
+        ordenEspecialidadAsc: 'Specialty (A - Z)',
+        ordenEspecialidadDesc: 'Specialty (Z - A)',
+        ordenMedicoAsc: 'Doctor (A - Z)',
+        ordenMedicoDesc: 'Doctor (Z - A)',
 
         // Estados de Cita
         estadoReservada: 'Booked',
@@ -721,6 +735,13 @@ export const traducciones: Record<Idioma, TraduccionEsquema> = {
         filtroFaltas: 'Mana chayasqakuna',
         filtroCanceladas: 'Tatichisqakuna',
         sinCitasRegistradas: 'Manam tupanaykikuna kanchu chay suysukunawan.',
+        ordenarPor: 'Allichay kaywan',
+        ordenFechaReciente: 'Pacha: Kunanllaraq',
+        ordenFechaAntigua: 'Pacha: Ñawpaqmanta',
+        ordenEspecialidadAsc: 'Hampina kasta (A - Z)',
+        ordenEspecialidadDesc: 'Hampina kasta (Z - A)',
+        ordenMedicoAsc: 'Hampiq (A - Z)',
+        ordenMedicoDesc: 'Hampiq (Z - A)',
 
         // Estados de Cita
         estadoReservada: 'Waqaychasqa',
@@ -1016,6 +1037,13 @@ export const traducciones: Record<Idioma, TraduccionEsquema> = {
         filtroFaltas: 'Jani jutirinaka',
         filtroCanceladas: 'Jiskt\'atanaka',
         sinCitasRegistradas: 'Janiw tantachawinakaxa utjkiti uka ajllitanakampi.',
+        ordenarPor: 'Ukham askichaña',
+        ordenFechaReciente: 'Pacha: Jichhaki',
+        ordenFechaAntigua: 'Pacha: Nayraqata',
+        ordenEspecialidadAsc: 'Qullañ kasta (A - Z)',
+        ordenEspecialidadDesc: 'Qullañ kasta (Z - A)',
+        ordenMedicoAsc: 'Qulliri (A - Z)',
+        ordenMedicoDesc: 'Qulliri (Z - A)',
 
         // Estados de Cita
         estadoReservada: 'Katuqata',

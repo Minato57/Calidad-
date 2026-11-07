@@ -10,12 +10,12 @@ export class CorreoRemitenteRepository {
     }
 
     async listarTodos(): Promise<CorreoRemitenteModel[]> {
-        return this.repo.find({ order: { prioridad: 'ASC', id_remitente: 'ASC' } });
+        return await this.repo.find({ order: { prioridad: 'ASC', id_remitente: 'ASC' } });
     }
 
     // Solo los ACTIVOS, en orden de failover (menor prioridad primero)
     async listarActivosOrdenados(): Promise<CorreoRemitenteModel[]> {
-        return this.repo.find({
+        return await this.repo.find({
             where: { activo: true },
             order: { prioridad: 'ASC', id_remitente: 'ASC' },
         });
@@ -23,7 +23,7 @@ export class CorreoRemitenteRepository {
 
     async crear(data: Partial<CorreoRemitenteModel>): Promise<CorreoRemitenteModel> {
         const nuevo = this.repo.create(data);
-        return this.repo.save(nuevo);
+        return await this.repo.save(nuevo);
     }
 
     async actualizar(id: number, data: Partial<CorreoRemitenteModel>): Promise<void> {
@@ -35,6 +35,6 @@ export class CorreoRemitenteRepository {
     }
 
     async buscarPorCorreo(correo: string): Promise<CorreoRemitenteModel | null> {
-        return this.repo.findOne({ where: { correo } });
+        return await this.repo.findOne({ where: { correo } });
     }
 }

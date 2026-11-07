@@ -68,7 +68,7 @@ export class HorarioRepository implements IHorarioRepository {
     // NUEVO (Enfoque A1): obtener el médico de una especialidad
     // ============================================================
     async obtenerMedicoDeEspecialidad(idEspecialidad: number): Promise<MedicoModel | null> {
-        return this.medicoRepo.findOne({
+        return await this.medicoRepo.findOne({
             where: { id_especialidad: idEspecialidad },
         });
     }
@@ -83,7 +83,7 @@ export class HorarioRepository implements IHorarioRepository {
         fecha: string,
         hora: string,
     ): Promise<HorarioModel | null> {
-        return this.repo.findOne({
+        return await this.repo.findOne({
             where: {
                 id_medico: idMedico,
                 fecha: fecha as any,

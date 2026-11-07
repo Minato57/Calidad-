@@ -31,7 +31,7 @@ import { CrearCuentaMedicoDTO } from '../dto/crear-cuenta-medico.dto';
 import { ProgramarDisponibilidadDTO } from '../dto/programar-disponibilidad.dto';
 
 export class AdminService {
-    private repo: IAdminRepository = new AdminRepository();
+    private readonly repo: IAdminRepository = new AdminRepository();
 
     // ============================================================
     // 1) CANCELACIÓN MASIVA DE CITAS

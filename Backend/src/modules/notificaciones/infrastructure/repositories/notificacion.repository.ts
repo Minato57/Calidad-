@@ -36,7 +36,7 @@ export class NotificacionRepository implements INotificacionRepository {
     }
 
     async contarNoLeidas(idUsuario: number): Promise<number> {
-        return this.repo.count({
+        return await this.repo.count({
             where: { id_usuario: idUsuario, leida: false },
         });
     }

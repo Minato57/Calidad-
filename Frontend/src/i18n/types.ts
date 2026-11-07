@@ -131,6 +131,15 @@ export interface TraduccionEsquema {
     filtroCanceladas: string;
     sinCitasRegistradas: string;
 
+    // Ordenamiento de Citas
+    ordenarPor: string;
+    ordenFechaReciente: string;
+    ordenFechaAntigua: string;
+    ordenEspecialidadAsc: string;
+    ordenEspecialidadDesc: string;
+    ordenMedicoAsc: string;
+    ordenMedicoDesc: string;
+
     // Estados de Cita
     estadoReservada: string;
     estadoConfirmada: string;

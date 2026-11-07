@@ -16,6 +16,14 @@ import { formatearFecha, formatearHora, diasDesdeHoy } from '../../utils/formatt
 
 type Filtro = 'TODAS' | EstadoCita;
 
+export type TipoOrdenCita =
+    | 'FECHA_DESC'
+    | 'FECHA_ASC'
+    | 'ESP_ASC'
+    | 'ESP_DESC'
+    | 'MEDICO_ASC'
+    | 'MEDICO_DESC';
+
 const POR_PAGINA = 6;
 
 export const MisCitas = () => {
@@ -31,6 +39,7 @@ export const MisCitas = () => {
     const [filtroEsp, setFiltroEsp]   = useState('');
     const [fechaDesde, setFechaDesde] = useState('');
     const [fechaHasta, setFechaHasta] = useState('');
+    const [orden, setOrden]           = useState<TipoOrdenCita>('FECHA_DESC');
 
     // Paginación
     const [pagina, setPagina] = useState(1);
@@ -50,10 +59,14 @@ export const MisCitas = () => {
         }
     };
 
-    useEffect(() => { cargar(); }, []);
+    useEffect(() => {
+        void cargar();
+    }, []);
 
-    // Cada vez que cambia un filtro, volvemos a la página 1
-    useEffect(() => { setPagina(1); }, [filtro, filtroEsp, fechaDesde, fechaHasta]);
+    // Cada vez que cambia un filtro o el orden, volvemos a la página 1
+    useEffect(() => {
+        setPagina(1);
+    }, [filtro, filtroEsp, fechaDesde, fechaHasta, orden]);
 
     const confirmarCancelacion = async () => {
         if (citaAConfirmar === null) return;
@@ -79,7 +92,7 @@ export const MisCitas = () => {
     const especialidadesUnicas = useMemo(() => {
         const set = new Set<string>();
         citas.forEach(c => { if (c.especialidad) set.add(c.especialidad); });
-        return Array.from(set).sort();
+        return Array.from(set).sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
     }, [citas]);
 
     // Filtrado
@@ -97,10 +110,44 @@ export const MisCitas = () => {
         });
     }, [citas, filtro, filtroEsp, fechaDesde, fechaHasta]);
 
+    // Ordenamiento seleccionable (por horario y por alfabeto)
+    const ordenadas = useMemo(() => {
+        return [...filtradas].sort((a, b) => {
+            switch (orden) {
+                case 'FECHA_ASC': {
+                    const compFecha = (a.fecha || '').localeCompare(b.fecha || '');
+                    if (compFecha !== 0) return compFecha;
+                    return (a.hora || '').localeCompare(b.hora || '');
+                }
+                case 'FECHA_DESC': {
+                    const compFecha = (b.fecha || '').localeCompare(a.fecha || '');
+                    if (compFecha !== 0) return compFecha;
+                    return (b.hora || '').localeCompare(a.hora || '');
+                }
+                case 'ESP_ASC':
+                    return (a.especialidad || '').localeCompare(b.especialidad || '', 'es', { sensitivity: 'base' });
+                case 'ESP_DESC':
+                    return (b.especialidad || '').localeCompare(a.especialidad || '', 'es', { sensitivity: 'base' });
+                case 'MEDICO_ASC': {
+                    const nomA = `${a.medico_apellidos || ''} ${a.medico_nombres || ''}`.trim();
+                    const nomB = `${b.medico_apellidos || ''} ${b.medico_nombres || ''}`.trim();
+                    return nomA.localeCompare(nomB, 'es', { sensitivity: 'base' });
+                }
+                case 'MEDICO_DESC': {
+                    const nomA = `${a.medico_apellidos || ''} ${a.medico_nombres || ''}`.trim();
+                    const nomB = `${b.medico_apellidos || ''} ${b.medico_nombres || ''}`.trim();
+                    return nomB.localeCompare(nomA, 'es', { sensitivity: 'base' });
+                }
+                default:
+                    return 0;
+            }
+        });
+    }, [filtradas, orden]);
+
     // Paginación
-    const totalPaginas = Math.max(1, Math.ceil(filtradas.length / POR_PAGINA));
+    const totalPaginas = Math.max(1, Math.ceil(ordenadas.length / POR_PAGINA));
     const paginaSegura = Math.min(pagina, totalPaginas);
-    const visibles = filtradas.slice((paginaSegura - 1) * POR_PAGINA, paginaSegura * POR_PAGINA);
+    const visibles = ordenadas.slice((paginaSegura - 1) * POR_PAGINA, paginaSegura * POR_PAGINA);
 
     const limpiarFiltros = () => {
         setFiltro('TODAS'); setFiltroEsp(''); setFechaDesde(''); setFechaHasta('');
@@ -150,8 +197,9 @@ export const MisCitas = () => {
                 <Card className="p-4 mb-6">
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
                         <div>
-                            <label className="block text-xs font-bold text-mute mb-1">{t.especialidad}</label>
+                            <label htmlFor="filtro-especialidad" className="block text-xs font-bold text-mute mb-1">{t.especialidad}</label>
                             <select
+                                id="filtro-especialidad"
                                 value={filtroEsp}
                                 onChange={(e) => setFiltroEsp(e.target.value)}
                                 className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm text-ink-soft bg-white focus:outline-none focus:border-sky-main"
@@ -163,8 +211,9 @@ export const MisCitas = () => {
                             </select>
                         </div>
                         <div>
-                            <label className="block text-xs font-bold text-mute mb-1">{t.desde}</label>
+                            <label htmlFor="fecha-desde" className="block text-xs font-bold text-mute mb-1">{t.desde}</label>
                             <input
+                                id="fecha-desde"
                                 type="date"
                                 value={fechaDesde}
                                 onChange={(e) => setFechaDesde(e.target.value)}
@@ -172,8 +221,9 @@ export const MisCitas = () => {
                             />
                         </div>
                         <div>
-                            <label className="block text-xs font-bold text-mute mb-1">{t.hasta}</label>
+                            <label htmlFor="fecha-hasta" className="block text-xs font-bold text-mute mb-1">{t.hasta}</label>
                             <input
+                                id="fecha-hasta"
                                 type="date"
                                 value={fechaHasta}
                                 onChange={(e) => setFechaHasta(e.target.value)}
@@ -190,7 +240,7 @@ export const MisCitas = () => {
                     <Card className="p-8 text-center"><p className="text-mute text-sm">{t.cargandoInformacion}</p></Card>
                 )}
 
-                {!cargando && filtradas.length === 0 && (
+                {!cargando && ordenadas.length === 0 && (
                     <Card className="p-12 text-center">
                         <p className="text-mute text-sm mb-4">
                             {t.sinCitasRegistradas}
@@ -202,11 +252,31 @@ export const MisCitas = () => {
                     </Card>
                 )}
 
-                {!cargando && filtradas.length > 0 && (
+                {!cargando && ordenadas.length > 0 && (
                     <>
-                        <p className="text-xs text-mute mb-3">
-                            {filtradas.length} {t.misCitas.toLowerCase()}
-                        </p>
+                        <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+                            <p className="text-xs text-mute">
+                                {ordenadas.length} {t.misCitas.toLowerCase()}
+                            </p>
+                            <div className="flex items-center gap-2">
+                                <label htmlFor="select-orden" className="text-xs font-bold text-mute">
+                                    {t.ordenarPor}:
+                                </label>
+                                <select
+                                    id="select-orden"
+                                    value={orden}
+                                    onChange={(e) => setOrden(e.target.value as TipoOrdenCita)}
+                                    className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs text-ink-soft bg-white focus:outline-none focus:border-sky-main cursor-pointer"
+                                >
+                                    <option value="FECHA_DESC">{t.ordenFechaReciente}</option>
+                                    <option value="FECHA_ASC">{t.ordenFechaAntigua}</option>
+                                    <option value="ESP_ASC">{t.ordenEspecialidadAsc}</option>
+                                    <option value="ESP_DESC">{t.ordenEspecialidadDesc}</option>
+                                    <option value="MEDICO_ASC">{t.ordenMedicoAsc}</option>
+                                    <option value="MEDICO_DESC">{t.ordenMedicoDesc}</option>
+                                </select>
+                            </div>
+                        </div>
 
                         <div className="space-y-3">
                             {visibles.map(cita => (

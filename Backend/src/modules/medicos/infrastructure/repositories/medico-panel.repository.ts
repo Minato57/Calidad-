@@ -118,7 +118,7 @@ export class MedicoPanelRepository {
         receta: string | null; indicaciones: string | null;
         codigo: string; correo: string | null;
     }): Promise<number> {
-        return AppDataSource.transaction(async (m) => {
+        return await AppDataSource.transaction(async (m) => {
             const ins = await m.query(
                 `INSERT INTO atenciones (id_cita, id_medico, diagnostico, receta, indicaciones, codigo_verificacion, correo_destino)
                  VALUES (?, ?, ?, ?, ?, ?, ?)`,

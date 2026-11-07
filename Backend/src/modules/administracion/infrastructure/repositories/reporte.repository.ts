@@ -106,6 +106,6 @@ export class ReporteRepository {
         if (f.hasta)           qb.andWhere('h.fecha <= :hasta', { hasta: f.hasta });
         if (f.id_especialidad) qb.andWhere('e.id_especialidad = :ie', { ie: f.id_especialidad });
 
-        return qb.getRawMany();
+        return await qb.getRawMany();
     }
 }

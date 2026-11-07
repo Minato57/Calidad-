@@ -86,7 +86,7 @@ export class CitaController {
         const idCita = Number(req.params.id);
         const idUsuario = req.jwt!.id;
 
-        if (!idCita || isNaN(idCita)) {
+        if (!idCita || Number.isNaN(idCita)) {
             return res.status(400).json({ ok: false, mensaje: 'ID de cita inválido' });
         }
 

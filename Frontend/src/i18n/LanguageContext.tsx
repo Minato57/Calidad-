@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useEffect, useState, useMemo, useCallback, ReactNode } from 'react';
 import { Idioma, IdiomaInfo, TraduccionEsquema } from './types';
 import { traducciones, IDIOMAS_DISPONIBLES } from './translations';
 
@@ -23,22 +23,22 @@ export const LanguageProvider = ({ children }: { children: ReactNode }) => {
         return 'es';
     });
 
-    const setIdioma = (nuevo: Idioma) => {
+    const setIdioma = useCallback((nuevo: Idioma) => {
         setIdiomaState(nuevo);
         localStorage.setItem(KEY_IDIOMA, nuevo);
         document.documentElement.lang = nuevo;
-    };
+    }, []);
 
     useEffect(() => {
         document.documentElement.lang = idioma;
     }, [idioma]);
 
-    const value: LanguageContextType = {
+    const value: LanguageContextType = useMemo(() => ({
         idioma,
         setIdioma,
         t: traducciones[idioma],
         idiomas: IDIOMAS_DISPONIBLES,
-    };
+    }), [idioma, setIdioma]);
 
     return (
         <LanguageContext.Provider value={value}>

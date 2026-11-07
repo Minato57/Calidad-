@@ -29,7 +29,7 @@ export class ReporteService {
         const edadDe = (fn: any): number | null => {
             if (!fn) return null;
             const d = new Date(fn);
-            if (isNaN(d.getTime())) return null;
+            if (Number.isNaN(d.getTime())) return null;
             let e = hoy.getFullYear() - d.getFullYear();
             const m = hoy.getMonth() - d.getMonth();
             if (m < 0 || (m === 0 && hoy.getDate() < d.getDate())) e--;

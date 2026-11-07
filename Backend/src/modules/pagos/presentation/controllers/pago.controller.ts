@@ -35,7 +35,7 @@ export class PagoController {
     };
 
     // Mercado Pago espera un 200 rápido; el procesamiento re-consulta la API de MP.
-    webhook = async (req: Request, res: Response) => {
+    webhook = (req: Request, res: Response) => {
         const tipo = String(req.query.type || req.query.topic || req.body?.type || '');
         const id = String(req.query['data.id'] || req.body?.data?.id || req.query.id || '');
         res.sendStatus(200);

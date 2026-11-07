@@ -380,7 +380,7 @@ export class AdminRepository implements IAdminRepository {
     }
 
     async obtenerMedico(idMedico: number) {
-        return this.medicoRepo.findOne({ where: { id_medico: idMedico } });
+        return await this.medicoRepo.findOne({ where: { id_medico: idMedico } });
     }
 
     async crearCuentaMedico(data: {
@@ -404,7 +404,7 @@ export class AdminRepository implements IAdminRepository {
             id_especialidad: data.id_especialidad,
         });
 
-        return AppDataSource.transaction(async (manager) => {
+        return await AppDataSource.transaction(async (manager) => {
             const modelo = manager.getRepository(UserModel).create({
                 correo: entidad.correo,
                 contrasena: entidad.contrasena,

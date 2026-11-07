@@ -31,8 +31,27 @@ dotenv.config();
 
 const app = express();
 
-// Middlewares globales
-app.use(cors());
+// Seguridad: Ocultar información del framework (SonarQube typescript:S5689)
+app.disable('x-powered-by');
+
+// Middlewares globales - CORS seguro (SonarQube typescript:S5122)
+const allowedOrigins = [
+    process.env.FRONTEND_URL,
+    'http://localhost:5173',
+    'http://localhost:3000',
+].filter(Boolean) as string[];
+
+app.use(cors({
+    origin: (origin, callback) => {
+        // Permitir solicitudes sin origin (como apps móviles, curl o cron interno) o si coincide con allowedOrigins
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error('Origen no permitido por política CORS'));
+        }
+    },
+    credentials: true,
+}));
 app.use(express.json());
 
 // Montaje de rutas

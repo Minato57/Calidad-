@@ -26,7 +26,7 @@ export function fechaEsReservable(fecha: string): { ok: boolean; motivo?: string
     const objetivo = new Date(fecha + 'T00:00:00');
     objetivo.setHours(0, 0, 0, 0);
 
-    if (isNaN(objetivo.getTime())) {
+    if (Number.isNaN(objetivo.getTime())) {
         return { ok: false, motivo: 'Fecha inválida' };
     }
 
