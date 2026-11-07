@@ -102,11 +102,11 @@ export class MedicoService {
             if (correoEnviado) await this.repo.marcarCorreoEnviado(idAtencion);
         }
 
-        let mensajeFinal = 'Atención registrada exitosamente';
-        if (correoDestino) {
-            mensajeFinal = correoEnviado
-                ? `Atención registrada y receta enviada a ${correoDestino}`
-                : `Atención registrada, pero no se pudo despachar el correo a ${correoDestino} (revisa remitentes SMTP configurados)`;
+        let mensajeFinal: string;
+        if (correoDestino && correoEnviado) {
+            mensajeFinal = `Atención registrada y receta enviada a ${correoDestino}`;
+        } else if (correoDestino) {
+            mensajeFinal = `Atención registrada, pero no se pudo despachar el correo a ${correoDestino} (revisa remitentes SMTP configurados)`;
         } else {
             mensajeFinal = 'Atención registrada exitosamente (sin correo de paciente)';
         }
