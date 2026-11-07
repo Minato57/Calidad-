@@ -20,7 +20,7 @@ export const Cancelaciones = () => {
     const [msg, setMsg]             = useState<string | null>(null);
 
     useEffect(() => {
-        (async () => {
+        void (async () => {
             try {
                 const c = await adminApi.obtenerCancelaciones();
                 setLimite(c.limite_cancelaciones ?? 3);

@@ -33,7 +33,7 @@ export const DropdownBuzon = ({ abierto, onCerrar, onCambioNoLeidas }: DropdownB
     // Cargar notificaciones cuando se abre
     useEffect(() => {
         if (!abierto) return;
-        (async () => {
+        void (async () => {
             setCargando(true);
             try {
                 const data = await notificacionesApi.obtenerBuzon();
@@ -146,8 +146,16 @@ const ItemNotificacion = ({ notificacion: n, onClick }: ItemProps) => {
 
     return (
         <div
+            role="button"
+            tabIndex={0}
             onClick={onClick}
-            className={`relative px-4 py-3 cursor-pointer border-b border-gray-50 transition-colors ${fondo}`}
+            onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onClick();
+                }
+            }}
+            className={`relative px-4 py-3 cursor-pointer border-b border-gray-50 transition-colors text-left ${fondo}`}
         >
             <div className="flex gap-3">
                 {/* Punto no leído */}

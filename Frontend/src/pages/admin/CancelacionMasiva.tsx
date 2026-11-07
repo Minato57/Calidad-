@@ -23,7 +23,7 @@ export const CancelacionMasiva = () => {
     const [msg, setMsg]       = useState<{ texto: string; ok: boolean } | null>(null);
 
     useEffect(() => {
-        (async () => {
+        void (async () => {
             try {
                 const data = await adminApi.listarEspecialidades();
                 setEspecialidades(data.filter(e => e.estado === 'ACTIVA'));

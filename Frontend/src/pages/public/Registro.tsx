@@ -80,7 +80,7 @@ export const Registro = () => {
             <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-sky-soft via-blue-50 to-smoke">
                 <div className="bg-white rounded-3xl shadow-card p-12 max-w-md text-center">
                     <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-success flex items-center justify-center">
-                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none">
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                             <path d="M5 12 L10 17 L19 8"
                                   stroke="white" strokeWidth="3"
                                   strokeLinecap="round" strokeLinejoin="round" />
@@ -100,7 +100,7 @@ export const Registro = () => {
                 {/* Header */}
                 <div className="text-center mb-6">
                     <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-sky-main to-sky-deep flex items-center justify-center">
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                             <path d="M5 12 L10 17 L19 8" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
                     </div>
@@ -145,8 +145,9 @@ export const Registro = () => {
                             />
                             {/* Género */}
                             <div>
-                                <label className="block text-xs font-semibold text-ink-soft mb-2">Género</label>
+                                <label htmlFor="genero-select" className="block text-xs font-semibold text-ink-soft mb-2">Género</label>
                                 <select
+                                    id="genero-select"
                                     value={form.genero}
                                     onChange={(e) => actualizar('genero', e.target.value as 'Masculino' | 'Femenino' | 'Otros')}
                                     className="w-full px-4 py-3 text-sm bg-white rounded-lg border border-gray-200 focus:border-sky-main outline-none"

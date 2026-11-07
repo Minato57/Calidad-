@@ -61,7 +61,7 @@ export const MisPacientes = () => {
         }
     };
 
-    useEffect(() => { cargar(fecha); }, [fecha]);
+    useEffect(() => { void cargar(fecha); }, [fecha]);
 
     const atendidos  = useMemo(() => citas.filter(c => c.atendida).length, [citas]);
     const pendientes = useMemo(() => citas.filter(c => !c.atendida && c.estado !== 'FALTA').length, [citas]);

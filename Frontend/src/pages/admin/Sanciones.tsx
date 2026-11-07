@@ -20,7 +20,7 @@ export const Sanciones = () => {
     const [msg, setMsg]           = useState<string | null>(null);
 
     useEffect(() => {
-        (async () => {
+        void (async () => {
             try {
                 const s = await adminApi.obtenerSanciones();
                 setLimite(s.limite_inasistencias ?? 3);

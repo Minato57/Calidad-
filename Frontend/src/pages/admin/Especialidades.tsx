@@ -75,7 +75,7 @@ export const Especialidades = () => {
         }
     };
 
-    useEffect(() => { cargar(); }, []);
+    useEffect(() => { void cargar(); }, []);
 
     const crearEspecialidad = async (e: FormEvent) => {
         e.preventDefault();

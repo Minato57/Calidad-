@@ -68,7 +68,7 @@ export const Reservar = () => {
 
     // Cargar especialidades
     useEffect(() => {
-        (async () => {
+        void (async () => {
             setCargando(true);
             try {
                 const lista = await citasApi.listarEspecialidades();
@@ -84,7 +84,7 @@ export const Reservar = () => {
     // Cargar médicos cuando se elige especialidad
     useEffect(() => {
         if (!especialidad) return;
-        (async () => {
+        void (async () => {
             setCargando(true);
             setError(null);
             try {
@@ -102,7 +102,7 @@ export const Reservar = () => {
     // Cargar horarios cuando hay fecha + médico
     useEffect(() => {
         if (!fecha || !medico) return;
-        (async () => {
+        void (async () => {
             setCargando(true);
             setError(null);
             try {
@@ -120,7 +120,7 @@ export const Reservar = () => {
     // Cargar dependientes cuando la especialidad requiere datos del menor
     useEffect(() => {
         if (!especialidad?.requiere_datos_menor) return;
-        (async () => {
+        void (async () => {
             try {
                 const lista = await citasApi.listarDependientes();
                 setDependientes(lista);
@@ -135,7 +135,7 @@ export const Reservar = () => {
         if (paso !== 4 || !horaSel || !especialidad) return;
         if (especialidad.requiere_datos_menor && !dependienteSel) { setRequisito(null); return; }
         let activo = true;
-        (async () => {
+        void (async () => {
             setCargandoReq(true);
             try {
                 const r = await pagosApi.requisito(especialidad.requiere_datos_menor ? dependienteSel ?? undefined : undefined);
@@ -160,7 +160,7 @@ export const Reservar = () => {
         const paymentId = qs.get('payment_id') ?? qs.get('collection_id') ?? undefined;
         window.history.replaceState({}, '', '/paciente/reservar');
 
-        (async () => {
+        void (async () => {
             const raw = sessionStorage.getItem(DRAFT_KEY);
             if (!raw) { setError('No encontramos la reserva en curso. Vuelve a elegir tu horario.'); return; }
             const d: BorradorReserva = JSON.parse(raw);
@@ -528,7 +528,7 @@ const PasoCalendario = ({ medico, fechaSel, onFecha, onAtras, onContinuar }: {
     const [cargando, setCargando] = useState(false);
 
     useEffect(() => {
-        (async () => {
+        void (async () => {
             setCargando(true);
             try {
                 const data = await citasApi.obtenerCalendario(anio, mes, medico.id_medico);
@@ -850,7 +850,7 @@ const ExitoReserva = ({ especialidad, fecha, hora }: { especialidad: string; fec
     return (
     <Card className="p-12 text-center">
         <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-success flex items-center justify-center">
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="none">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <path d="M5 12 L10 17 L19 8" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
         </div>

@@ -19,7 +19,7 @@ export const Perfil = () => {
     const [contadores, setContadores] = useState<ContadoresPaciente | null>(null);
 
     useEffect(() => {
-        (async () => {
+        void (async () => {
             try {
                 const data = await citasApi.contadores();
                 setContadores(data);

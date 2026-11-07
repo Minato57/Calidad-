@@ -8,6 +8,11 @@ import { Header } from '../../components/layout/Header';
 import { Boton } from '../../components/common/Boton';
 import { Card } from '../../components/common/Card';
 import { Badge } from '../../components/common/Badge';
+import {
+    ModalConfirmarCancelacion,
+    ModalResultadoCancelacion,
+    ResultadoCancelacion,
+} from '../../components/common/ModalesCancelacion';
 
 import { useAuth } from '../../auth/useAuth';
 import { useTranslation } from '../../i18n';
@@ -31,7 +36,7 @@ export const Dashboard = () => {
 
     // Modales (igual que en Mis Citas)
     const [confirmarAbierto, setConfirmarAbierto] = useState(false);
-    const [resultado, setResultado] = useState<{ mensaje: string; bloqueada: boolean; sancionada: boolean } | null>(null);
+    const [resultado, setResultado] = useState<ResultadoCancelacion | null>(null);
 
     const cargarCitas = async () => {
         try {
@@ -52,7 +57,7 @@ export const Dashboard = () => {
     };
 
     useEffect(() => {
-        cargarCitas();
+        void cargarCitas();
     }, []);
 
     const confirmarCancelacion = async () => {
@@ -220,48 +225,17 @@ export const Dashboard = () => {
                 )}
             </main>
 
-            {/* MODAL DE CONFIRMACIÓN */}
-            {confirmarAbierto && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-                    <div className="bg-white rounded-2xl shadow-dropdown w-full max-w-sm p-6">
-                        <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-warning-soft flex items-center justify-center">
-                            <span className="text-2xl">⚠️</span>
-                        </div>
-                        <h3 className="text-lg font-bold text-ink text-center mb-2">{t.cancelarEstaCita}</h3>
-                        <p className="text-sm text-mute text-center mb-2">
-                            {t.avisoCancelacionTardia}
-                        </p>
-                        <p className="text-xs text-warning text-center mb-5 font-semibold">
-                            {t.avisoSuspensionCuenta}
-                        </p>
-                        <div className="flex gap-3">
-                            <Boton variante="secondary" fullWidth onClick={() => setConfirmarAbierto(false)}>
-                                {t.noMantener}
-                            </Boton>
-                            <Boton variante="danger" fullWidth onClick={confirmarCancelacion}>
-                                {t.siCancelar}
-                            </Boton>
-                        </div>
-                    </div>
-                </div>
-            )}
+            {/* MODALES DE CANCELACIÓN */}
+            <ModalConfirmarCancelacion
+                abierto={confirmarAbierto}
+                onCerrar={() => setConfirmarAbierto(false)}
+                onConfirmar={confirmarCancelacion}
+            />
 
-            {/* MODAL DE RESULTADO */}
-            {resultado !== null && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-                    <div className="bg-white rounded-2xl shadow-dropdown w-full max-w-sm p-6">
-                        <div className={`w-12 h-12 mx-auto mb-4 rounded-full flex items-center justify-center
-                            ${resultado.bloqueada ? 'bg-danger-soft' : resultado.sancionada ? 'bg-warning-soft' : 'bg-success-soft'}`}>
-                            <span className="text-2xl">{resultado.bloqueada ? '🔒' : resultado.sancionada ? '⚠️' : '✓'}</span>
-                        </div>
-                        <h3 className="text-lg font-bold text-ink text-center mb-2">
-                            {resultado.bloqueada ? t.cuentaSuspendida : t.citaCancelada}
-                        </h3>
-                        <p className="text-sm text-mute text-center mb-5">{resultado.mensaje}</p>
-                        <Boton fullWidth onClick={() => setResultado(null)}>{t.entendido}</Boton>
-                    </div>
-                </div>
-            )}
+            <ModalResultadoCancelacion
+                resultado={resultado}
+                onCerrar={() => setResultado(null)}
+            />
         </div>
     );
 };

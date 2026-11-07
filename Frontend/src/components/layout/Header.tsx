@@ -34,7 +34,7 @@ export const Header = () => {
     }, [abiertoMenu]);
 
     useEffect(() => {
-        (async () => {
+        void (async () => {
             try {
                 const data = await notificacionesApi.obtenerBuzon();
                 setNoLeidas(data.no_leidas ?? 0);
@@ -59,7 +59,7 @@ export const Header = () => {
                 {/* Logo */}
                 <div className="flex items-center gap-3">
                     <div className="w-9 h-9 rounded-full bg-gradient-to-br from-sky-main to-sky-deep flex items-center justify-center flex-shrink-0">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                             <path d="M4 21V8l8-5 8 5v13" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                             <path d="M9 21v-4h6v4" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                             <path d="M12 7v4M10 9h4" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -105,7 +105,7 @@ export const Header = () => {
                             className="relative w-10 h-10 rounded-full bg-smoke hover:bg-sky-soft flex items-center justify-center transition-colors"
                             aria-label={t.notificaciones}
                         >
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                                 <path d="M6 8a6 6 0 0 1 12 0v5l1.5 2.5h-15L6 13V8z"
                                       stroke="#475569" strokeWidth="1.8"
                                       strokeLinejoin="round" strokeLinecap="round" />

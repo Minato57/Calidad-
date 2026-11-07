@@ -25,7 +25,7 @@ export const HeaderAdmin = () => {
                 {/* Logo */}
                 <div className="flex items-center gap-3">
                     <div className="w-9 h-9 rounded-full bg-white flex items-center justify-center flex-shrink-0">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                             <path d="M4 21V8l8-5 8 5v13" stroke="#1E3A8A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                             <path d="M9 21v-4h6v4" stroke="#1E3A8A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                             <path d="M12 7v4M10 9h4" stroke="#1E3A8A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />

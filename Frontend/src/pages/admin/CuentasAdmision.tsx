@@ -38,7 +38,7 @@ export const CuentasAdmision = () => {
         finally { setCargando(false); }
     };
 
-    useEffect(() => { cargar(); }, []);
+    useEffect(() => { void cargar(); }, []);
 
     const crear = async (e: FormEvent) => {
         e.preventDefault();

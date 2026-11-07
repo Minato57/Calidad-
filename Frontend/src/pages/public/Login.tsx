@@ -63,7 +63,7 @@ export const Login = () => {
                 {/* Logo */}
                 <div className="flex justify-center mb-6">
                     <div className="w-20 h-20 rounded-full bg-gradient-to-br from-sky-main to-sky-deep flex items-center justify-center shadow-cta">
-                        <svg width="36" height="36" viewBox="0 0 24 24" fill="none">
+                        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                             <path d="M4 21V8l8-5 8 5v13" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                             <path d="M9 21v-4h6v4" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                             <path d="M12 7v4M10 9h4" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />

@@ -45,7 +45,7 @@ export const Reportes = () => {
     const [metaTexto, setMetaTexto] = useState('');
 
     useEffect(() => {
-        (async () => {
+        void (async () => {
             try {
                 const [esps, meds] = await Promise.all([
                     adminApi.listarEspecialidades(),

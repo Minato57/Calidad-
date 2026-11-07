@@ -73,9 +73,9 @@ class ProveedorScraper implements ProveedorSeguro {
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
         const html = await resp.text();
 
-        // Texto plano (quita etiquetas) para evaluar las expresiones.
-        const texto = html.replace(/<script[\s\S]*?<\/script>/gi, ' ')
-                          .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+        // Texto plano (quita etiquetas) para evaluar las expresiones (evita backtracking superlineal S8786).
+        const texto = html.replace(/<script\b[^>]*>(?:[^<]|<(?!\/script>))*<\/script>/gi, ' ')
+                          .replace(/<style\b[^>]*>(?:[^<]|<(?!\/style>))*<\/style>/gi, ' ')
                           .replace(/<[^>]+>/g, ' ')
                           .replace(/\s+/g, ' ');
 

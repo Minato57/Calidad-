@@ -43,7 +43,7 @@ export const CorreosNotificacion = () => {
         finally { setCargando(false); }
     };
 
-    useEffect(() => { cargar(); }, []);
+    useEffect(() => { void cargar(); }, []);
 
     const limpiar = () => {
         setEditando(null);

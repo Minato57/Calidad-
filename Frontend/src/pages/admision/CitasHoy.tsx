@@ -39,7 +39,7 @@ export const CitasHoy = () => {
     };
 
     useEffect(() => {
-        cargar(fecha);
+        void cargar(fecha);
     }, [fecha]);
 
     // Al cambiar fecha o especialidad, volvemos a la página 1
@@ -73,7 +73,8 @@ export const CitasHoy = () => {
 
     // Especialidades presentes en las citas del día (para el dropdown)
     const especialidadesUnicas = useMemo(
-        () => Array.from(new Set(citas.map(c => c.especialidad).filter(Boolean))).sort() as string[],
+        () => (Array.from(new Set(citas.map(c => c.especialidad).filter(Boolean))) as string[])
+            .sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' })),
         [citas],
     );
 
@@ -114,8 +115,9 @@ export const CitasHoy = () => {
                 {/* Filtros: fecha + especialidad */}
                 <Card className="p-4 mb-6">
                     <div className="flex flex-wrap items-center gap-3">
-                        <label className="text-sm font-semibold text-ink-soft">{t.fecha}:</label>
+                        <label htmlFor="filtro-fecha" className="text-sm font-semibold text-ink-soft">{t.fecha}:</label>
                         <input
+                            id="filtro-fecha"
                             type="date"
                             value={fecha}
                             onChange={(e) => setFecha(e.target.value)}
@@ -123,8 +125,9 @@ export const CitasHoy = () => {
                         />
                         <Boton tamano="sm" variante="secondary" onClick={() => setFecha(hoy)}>Hoy</Boton>
 
-                        <label className="text-sm font-semibold text-ink-soft ml-2">{t.especialidad}:</label>
+                        <label htmlFor="filtro-especialidad" className="text-sm font-semibold text-ink-soft ml-2">{t.especialidad}:</label>
                         <select
+                            id="filtro-especialidad"
                             value={filtroEsp}
                             onChange={(e) => setFiltroEsp(e.target.value)}
                             className="px-4 py-2 text-sm bg-white rounded-lg border border-gray-200 focus:border-sky-main outline-none"
