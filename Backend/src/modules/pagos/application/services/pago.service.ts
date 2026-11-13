@@ -149,11 +149,11 @@ export class PagoService {
         }
 
         await AppDataSource.query(`UPDATE pagos SET mp_preference_id = ? WHERE id_pago = ?`, [pref.id, idPago]);
-        const esPrueba = this.tokenMP.startsWith('TEST-');
+        const esSandbox = !!pref.sandbox_init_point && (process.env.NODE_ENV !== 'production' || this.tokenMP.startsWith('TEST-'));
         return {
             ok: true, requiere_pago: true, simulado: false, id_pago: idPago,
             monto: ev.monto, moneda: ev.moneda,
-            init_point: esPrueba && pref.sandbox_init_point ? pref.sandbox_init_point : pref.init_point,
+            init_point: esSandbox ? pref.sandbox_init_point : pref.init_point,
         };
     }
 

@@ -1,11 +1,13 @@
 // =================================================================
 // CAPA: Presentation / Controllers
-// GET /seguros/consulta?dni=XXXXXXXX[&forzar=1]
-// Un PACIENTE solo puede consultar su propio DNI o el de sus familiares.
+// GET  /seguros/consulta?dni=XXXXXXXX[&forzar=1]
+// GET  /seguros/captcha
+// POST /seguros/verificar-captcha
+// GET  /seguros/digito-verificador?dni=XXXXXXXX
 // =================================================================
 import { Request, Response } from 'express';
 import { AppDataSource } from '../../../../config/datasource';
-import { SeguroService } from '../../application/services/seguro.service';
+import { SeguroService, calcularDigitoVerificador } from '../../application/services/seguro.service';
 
 export class SeguroController {
     private service = new SeguroService();
@@ -30,5 +32,35 @@ export class SeguroController {
         const forzar = req.query.forzar === '1' && req.jwt!.rol !== 'PACIENTE';
         const seguro = await this.service.consultar(dni, forzar);
         return res.json({ ok: true, seguro });
+    };
+
+    captcha = async (_req: Request, res: Response) => {
+        const data = await this.service.obtenerCaptcha();
+        return res.json(data);
+    };
+
+    verificarCaptcha = async (req: Request, res: Response) => {
+        try {
+            const { dni, digitoVerificador, fechaNacimiento, codigoCaptcha, token } = req.body || {};
+            const seguro = await this.service.verificarConCaptcha({
+                dni: String(dni || '').trim(),
+                digitoVerificador: String(digitoVerificador || '').trim(),
+                fechaNacimiento: String(fechaNacimiento || '').trim(),
+                codigoCaptcha: String(codigoCaptcha || '').trim(),
+                token: token ? String(token).trim() : undefined,
+            });
+            return res.json({ ok: true, seguro });
+        } catch (err: any) {
+            return res.status(err.status || 400).json({
+                ok: false,
+                mensaje: err.message || 'Error al validar con el portal del SIS',
+            });
+        }
+    };
+
+    digitoVerificador = (req: Request, res: Response) => {
+        const dni = String(req.query.dni || '').trim();
+        const digito = calcularDigitoVerificador(dni);
+        return res.json({ ok: true, dni, digito });
     };
 }

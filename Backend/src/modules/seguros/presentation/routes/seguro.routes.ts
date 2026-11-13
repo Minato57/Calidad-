@@ -11,4 +11,22 @@ router.get(
     controller.consultar,
 );
 
+router.get(
+    '/captcha',
+    authHandler({ roles: ['PACIENTE', 'ADMISION', 'ADMIN', 'MEDICO'] }),
+    controller.captcha,
+);
+
+router.post(
+    '/verificar-captcha',
+    authHandler({ roles: ['PACIENTE', 'ADMISION', 'ADMIN', 'MEDICO'] }),
+    controller.verificarCaptcha,
+);
+
+router.get(
+    '/digito-verificador',
+    authHandler({ roles: ['PACIENTE', 'ADMISION', 'ADMIN', 'MEDICO'] }),
+    controller.digitoVerificador,
+);
+
 export default router;

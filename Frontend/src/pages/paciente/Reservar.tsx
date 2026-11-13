@@ -11,6 +11,7 @@ import axios from 'axios';
 import { Header } from '../../components/layout/Header';
 import { Boton } from '../../components/common/Boton';
 import { Card } from '../../components/common/Card';
+import { ModalVerificarSIS } from '../../components/paciente/ModalVerificarSIS';
 
 import { citasApi } from '../../api/citasApi';
 import { pagosApi } from '../../api/pagosApi';
@@ -64,6 +65,7 @@ export const Reservar = () => {
     const [requisito, setRequisito]     = useState<RequisitoPago | null>(null);
     const [cargandoReq, setCargandoReq] = useState(false);
     const [pagoAprobado, setPagoAprobado] = useState<number | null>(null);
+    const [modalSIS, setModalSIS]       = useState(false);
     const retornoProcesado = useRef(false);
 
     // Cargar especialidades
@@ -379,6 +381,7 @@ export const Reservar = () => {
                         requisito={requisito}
                         cargandoReq={cargandoReq}
                         pagoAprobado={pagoAprobado}
+                        onAbrirModalSIS={() => setModalSIS(true)}
                     />
                 )}
 
@@ -386,6 +389,21 @@ export const Reservar = () => {
                     <ExitoReserva especialidad={especialidad.nombre} fecha={fecha} hora={horaSel?.hora ?? ''} />
                 )}
             </main>
+
+            {modalSIS && (
+                <ModalVerificarSIS
+                    dni={especialidad?.requiere_datos_menor ? (dependientes.find(d => d.id_dependiente === dependienteSel)?.dni || '') : (requisito?.dni || '')}
+                    abierto={modalSIS}
+                    onCerrar={() => setModalSIS(false)}
+                    onVerificado={(seguro) => {
+                        setRequisito((prev) => prev ? {
+                            ...prev,
+                            seguro,
+                            requiere_pago: !seguro.tiene_seguro,
+                        } : null);
+                    }}
+                />
+            )}
         </div>
     );
 };
@@ -628,7 +646,7 @@ const PasoHorario = ({
     creandoDep, onToggleCrear,
     depNombres, onDepNombres, depApellidos, onDepApellidos,
     depDni, onDepDni, depFechaNac, onDepFechaNac, depParentesco, onDepParentesco,
-    guardandoDep, errorDep, onGuardarDep, requisito, cargandoReq, pagoAprobado,
+    guardandoDep, errorDep, onGuardarDep, requisito, cargandoReq, pagoAprobado, onAbrirModalSIS,
 }: {
     especialidad: Especialidad;
     medico: MedicoReserva;
@@ -660,6 +678,7 @@ const PasoHorario = ({
     requisito: RequisitoPago | null;
     cargandoReq: boolean;
     pagoAprobado: number | null;
+    onAbrirModalSIS?: () => void;
 }) => {
     const { t } = useTranslation();
     const requiereMenor = !!especialidad.requiere_datos_menor;
@@ -794,19 +813,37 @@ const PasoHorario = ({
                 {!cargandoReq && !pagoAprobado && requisito && (
                     requisito.requiere_pago ? (
                         <div role="status" className="rounded-lg p-4 border border-warning bg-warning-soft">
-                            <p className="text-sm font-bold text-warning">El paciente no cuenta con SIS</p>
-                            <p className="text-xs text-ink-soft">
+                            <div className="flex items-center justify-between">
+                                <p className="text-sm font-bold text-warning">El paciente no cuenta con SIS</p>
+                                {onAbrirModalSIS && (
+                                    <button
+                                        type="button"
+                                        onClick={onAbrirModalSIS}
+                                        className="text-xs bg-white text-blue-700 hover:bg-blue-50 px-2.5 py-1 rounded-md border border-blue-200 font-bold transition-all shadow-xs"
+                                    >
+                                        🔍 Verificar en SIS
+                                    </button>
+                                )}
+                            </div>
+                            <p className="text-xs text-ink-soft mt-1">
                                 Debes pagar <strong>S/ {requisito.monto.toFixed(2)}</strong> con Mercado Pago para confirmar la cita.
                             </p>
                             {!requisito.seguro.verificado && (
-                                <p className="text-[11px] text-mute mt-1">Estado de seguro no verificado oficialmente (modo demostración).</p>
+                                <p className="text-[11px] text-mute mt-1">
+                                    ¿Cuentas con SIS? Realiza la consulta con tu Captcha para verificar tu afiliación y obtener cita gratuita.
+                                </p>
                             )}
                         </div>
                     ) : (
                         <div role="status" className="rounded-lg p-4 border border-success bg-green-50">
-                            <p className="text-sm font-bold text-success">✓ Cuentas con SIS — tu cita es gratuita</p>
-                            {!requisito.seguro.verificado && (
-                                <p className="text-[11px] text-mute mt-1">Estado de seguro no verificado oficialmente (modo demostración).</p>
+                            <div className="flex items-center justify-between">
+                                <p className="text-sm font-bold text-success">✓ Cuentas con SIS — tu cita es gratuita</p>
+                                <span className="text-[11px] bg-green-200 text-green-800 px-2 py-0.5 rounded-full font-bold">
+                                    {requisito.seguro.verificado ? 'Acreditado oficial' : 'Acreditado'}
+                                </span>
+                            </div>
+                            {requisito.seguro.detalle && (
+                                <p className="text-xs text-green-800 mt-1">{requisito.seguro.detalle}</p>
                             )}
                         </div>
                     )

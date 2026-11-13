@@ -33,4 +33,22 @@ export const segurosApi = {
         const response = await apiClient.get('/seguros/consulta', { params: { dni } });
         return response.data.seguro;
     },
+    obtenerCaptcha: async (): Promise<{ ok: boolean; token: string; captchaImage: string; mensaje?: string }> => {
+        const response = await apiClient.get('/seguros/captcha');
+        return response.data;
+    },
+    verificarCaptcha: async (data: {
+        dni: string;
+        digitoVerificador: string;
+        fechaNacimiento: string;
+        codigoCaptcha: string;
+        token?: string;
+    }): Promise<{ ok: boolean; seguro: SeguroInfo; mensaje?: string }> => {
+        const response = await apiClient.post('/seguros/verificar-captcha', data);
+        return response.data;
+    },
+    calcularDigito: async (dni: string): Promise<string> => {
+        const response = await apiClient.get('/seguros/digito-verificador', { params: { dni } });
+        return response.data.digito;
+    },
 };
