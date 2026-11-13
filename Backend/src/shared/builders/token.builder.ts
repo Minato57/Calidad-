@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken';
+import { getJwtSecret } from '../../config/security';
 
 type Rol = 'PACIENTE' | 'ADMIN' | 'ADMISION' | 'MEDICO';
 
@@ -34,7 +35,7 @@ export class TokenBuilder {
     }
 
     firmar(): string {
-        const secret = process.env.JWT_SECRET || 'secret';
+        const secret = getJwtSecret();
         return jwt.sign(this.payload, secret, {
             expiresIn: this.expiracion,
         } as jwt.SignOptions);

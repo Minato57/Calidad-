@@ -8,6 +8,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 
 import { AppDataSource } from './config/datasource';
+import { getJwtSecret } from './config/security';
 
 // Rutas por módulo
 import authRoutes          from './modules/usuarios/presentation/routes/auth.routes';
@@ -28,6 +29,14 @@ import { errorHandler } from './shared/middlewares/error.handler';
 import { iniciarCronCorreos } from './shared/cron/correos.cron';
 
 dotenv.config();
+
+try {
+    getJwtSecret();
+} catch (error) {
+    const mensaje = error instanceof Error ? error.message : 'JWT_SECRET no es valido.';
+    console.error('[CONFIGURACION INSEGURA] ' + mensaje);
+    process.exit(1);
+}
 
 const app = express();
 

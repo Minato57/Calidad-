@@ -4,6 +4,7 @@
 //   - Registro de diagnóstico + receta, envío por correo con firma digital
 // =================================================================
 import { createHmac } from 'crypto';
+import { getJwtSecret } from '../../../../config/security';
 
 import { MedicoPanelRepository } from '../../infrastructure/repositories/medico-panel.repository';
 import { SeguroService } from '../../../seguros/application/services/seguro.service';
@@ -47,7 +48,7 @@ export class MedicoService {
     }
 
     private firmar(partes: (string | number)[]): string {
-        const secreto = process.env.JWT_SECRET || 'secret';
+        const secreto = getJwtSecret();
         return createHmac('sha256', secreto).update(partes.join('|')).digest('hex').slice(0, 16).toUpperCase();
     }
 

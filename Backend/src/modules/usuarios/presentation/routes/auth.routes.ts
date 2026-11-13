@@ -14,7 +14,8 @@ import { Router } from 'express';
 import { AuthController } from '../controllers/auth.controller';
 import { LoginDTO } from '../../application/dtos/login.dto';
 import { RegisterDTO } from '../../application/dtos/register.dto';
-import { authHandler } from '../../../../shared/middlewares/auth.handler'; 
+import { authHandler } from '../../../../shared/middlewares/auth.handler';
+import { loginRateLimit } from '../../../../shared/middlewares/login-rate-limit';
 
 // Pequeño helper para login y register (no requieren JWT,
 // solo validación del DTO). Se hace un wrapper sin token.
@@ -58,7 +59,7 @@ const validateBody = (dtoClass: any) => {
 // ============================================================
 // POST /auth/login
 // ============================================================
-router.post('/login', validateBody(LoginDTO), controller.login);
+router.post('/login', loginRateLimit, validateBody(LoginDTO), controller.login);
 
 // ============================================================
 // POST /auth/register

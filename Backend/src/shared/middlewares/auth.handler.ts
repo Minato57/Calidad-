@@ -22,6 +22,7 @@ import { Request, Response, NextFunction, RequestHandler } from 'express';
 import jwt from 'jsonwebtoken';
 import { plainToInstance } from 'class-transformer';
 import { validate, ValidationError } from 'class-validator';
+import { getJwtSecret } from '../../config/security';
 
 // ----- Extender el tipo Request de Express para incluir jwt y dto -----
 declare global {
@@ -72,7 +73,7 @@ export const authHandler = (opts: AuthHandlerOptions = {}): RequestHandler => {
         try {
             payload = jwt.verify(
                 token,
-                process.env.JWT_SECRET || 'secret',
+                getJwtSecret(),
             ) as { id: number; rol: Rol };
         } catch (error) {
             return res.status(401).json({
