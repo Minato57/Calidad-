@@ -363,6 +363,7 @@ ON DUPLICATE KEY UPDATE tipo = VALUES(tipo), asegurado = VALUES(asegurado), veri
 --   admin@carenest.pe     → ADMIN
 --   admision@carenest.pe  → ADMISION
 --   juan@gmail.com        → PACIENTE (Sin SIS -> paga S/ 20 con Mercado Pago)
+--   medico@carenest.pe    → MEDICO (crear con 002_usuario_medico.sql)
 --   jhair@gmail.com       → PACIENTE (Con SIS ACTIVO -> Cita Gratuita)
 --
 -- Los horarios y citas comienzan vacíos (se crean al reservar).

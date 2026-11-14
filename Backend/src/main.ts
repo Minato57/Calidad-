@@ -86,8 +86,42 @@ app.use(errorHandler);
 const PORT = Number(process.env.PORT) || 3000;
 
 AppDataSource.initialize()
-    .then(() => {
+    .then(async () => {
         console.log('Conexión a MySQL establecida');
+
+        // Auto-verificar usuario de pruebas para rol MEDICO (para Cypress/QA)
+        try {
+            const rows = await AppDataSource.query("SELECT id_usuario FROM usuarios WHERE correo = 'medico@carenest.pe' LIMIT 1");
+            const bcryptMod = await import('bcrypt');
+            const hash = await bcryptMod.hash('admin123', 10);
+            if (!rows || rows.length === 0) {
+                await AppDataSource.query(`
+                    INSERT INTO usuarios (correo, contrasena, rol, dni, nombres, apellidos, telefono, genero, activo)
+                    VALUES ('medico@carenest.pe', ?, 'MEDICO', '00000003', 'Carlos', 'Lopez', '977777777', 'Masculino', 1)
+                `, [hash]);
+                console.log('✓ Usuario de pruebas medico@carenest.pe creado');
+            } else {
+                await AppDataSource.query(
+                    "UPDATE usuarios SET contrasena = ?, rol = 'MEDICO', activo = 1 WHERE correo = 'medico@carenest.pe'",
+                    [hash]
+                );
+            }
+
+            const user = await AppDataSource.query("SELECT id_usuario FROM usuarios WHERE correo = 'medico@carenest.pe' LIMIT 1");
+            if (user && user.length > 0) {
+                const idUsuario = user[0].id_usuario;
+                const medicos = await AppDataSource.query("SELECT id_medico FROM medicos WHERE nombres = 'Carlos' AND apellidos = 'Lopez' LIMIT 1");
+                if (medicos && medicos.length > 0) {
+                    await AppDataSource.query(`
+                        INSERT INTO medico_usuario (id_medico, id_usuario, cmp)
+                        VALUES (?, ?, 'CMP-00001')
+                        ON DUPLICATE KEY UPDATE id_usuario = VALUES(id_usuario), cmp = VALUES(cmp)
+                    `, [medicos[0].id_medico, idUsuario]);
+                }
+            }
+        } catch (e) {
+            console.warn('Nota: verificación automática de médico omitida:', (e as any)?.message);
+        }
 
         // ⭐ Activar cron de recordatorios de citas 24h antes
         iniciarCronRecordatorios();

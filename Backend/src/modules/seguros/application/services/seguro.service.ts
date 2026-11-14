@@ -223,18 +223,12 @@ export class SeguroService {
                 if (err.status) throw err;
                 console.error('[SIS] Error en consulta real:', err?.message);
 
-                // Fallback inteligente para demostración
-                if (dni === '70905745') {
-                    tieneSeguro = true;
-                    tipo = 'SIS';
-                    detalle = 'TITULAR - ACTIVO (SUAREZ INFANTES JHAIR FABIAN)';
-                } else {
-                    const ult = Number(dni[dni.length - 1]);
-                    tieneSeguro = ult <= 5;
-                    tipo = tieneSeguro ? 'SIS' : 'NINGUNO';
-                    detalle = `Acreditación: ${tieneSeguro ? 'SIS ACTIVO' : 'NO REGISTRA SIS'}`;
-                }
-                fuente = 'SIMULADO';
+                // Sin conexión con el portal NO se inventa un resultado:
+                // se informa el error y no se guarda nada en la BD.
+                throw Object.assign(
+                    new Error('No se pudo validar con el portal del SIS. Intenta nuevamente en unos minutos.'),
+                    { status: 503 },
+                );
             }
         }
 
@@ -298,15 +292,14 @@ export class SeguroService {
         }
 
         // 3. Si nunca ha sido verificado, retornar estado provisional pidiendo verificación
-        const ultimo = Number(dni[dni.length - 1]);
-        const tieneProvisional = ultimo <= 5;
+        // Sin verificación NO se asume seguro: queda pendiente de validar.
         return {
             dni,
-            tipo: tieneProvisional ? 'SIS' : 'NINGUNO',
-            tiene_seguro: tieneProvisional,
+            tipo: 'NINGUNO',
+            tiene_seguro: false,
             fuente: 'SIMULADO',
             verificado: false,
-            detalle: 'Pendiente de acreditación con portal SIS',
+            detalle: 'Pendiente de verificación con portal SIS',
             consultado_en: new Date().toISOString(),
             desde_cache: false,
         };

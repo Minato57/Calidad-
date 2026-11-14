@@ -1,7 +1,12 @@
 import { RequestHandler } from 'express';
 
 const WINDOW_MS = 15 * 60 * 1000;
-const MAX_ATTEMPTS = 5;
+// Configurable por entorno (LOGIN_RATE_LIMIT_MAX) para pruebas E2E / de carga.
+// En produccion se mantiene el valor por defecto de 5 intentos.
+const getMaxAttempts = (): number => {
+    const configured = Number(process.env.LOGIN_RATE_LIMIT_MAX);
+    return configured > 0 ? configured : 5;
+};
 const MAX_TRACKED_CLIENTS = 10_000;
 const CLEANUP_INTERVAL_MS = 60 * 1000;
 
@@ -53,7 +58,7 @@ export const loginRateLimit: RequestHandler = (req, res, next) => {
         attemptsByIp.set(ip, window);
     }
 
-    if (window.attempts >= MAX_ATTEMPTS) {
+    if (window.attempts >= getMaxAttempts()) {
         const retryAfter = Math.max(1, Math.ceil((window.resetAt - now) / 1000));
         res.setHeader('Retry-After', String(retryAfter));
         return res.status(429).json({
