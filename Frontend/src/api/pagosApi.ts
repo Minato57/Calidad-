@@ -2,7 +2,7 @@
 // Endpoints de seguro (SIS) y pagos (Mercado Pago)
 // =================================================================
 import { apiClient } from './axios';
-import { CheckoutPago, RequisitoPago, SeguroInfo } from '../types';
+import { CheckoutPago, PersonaSeguro, RequisitoPago, SaldoPaciente, SeguroInfo } from '../types';
 
 export const pagosApi = {
     // ¿El paciente (o su familiar) tiene SIS? ¿Debe pagar?
@@ -11,6 +11,12 @@ export const pagosApi = {
             params: idDependiente ? { id_dependiente: idDependiente } : {},
         });
         return response.data;
+    },
+
+    // Saldos a favor del titular y sus familiares
+    saldos: async (): Promise<SaldoPaciente[]> => {
+        const response = await apiClient.get('/pagos/saldos');
+        return response.data.saldos ?? [];
     },
 
     // Crea el pago y devuelve la URL de Mercado Pago (init_point)
@@ -33,13 +39,20 @@ export const segurosApi = {
         const response = await apiClient.get('/seguros/consulta', { params: { dni } });
         return response.data.seguro;
     },
-    obtenerCaptcha: async (): Promise<{ ok: boolean; token: string; captchaImage: string; mensaje?: string }> => {
-        const response = await apiClient.get('/seguros/captcha');
+    // Titular + familiares con el estado del SIS de cada uno (Mi Perfil).
+    misEstados: async (): Promise<PersonaSeguro[]> => {
+        const response = await apiClient.get('/seguros/mis-estados');
+        return response.data.personas ?? [];
+    },
+    // Paso 1: abre la verificación en el portal del SIS (Captcha + token).
+    // Si el portal no responde, el backend devuelve 503 (no hay modo de respaldo silencioso).
+    iniciarVerificacion: async (dni: string): Promise<SesionVerificacionSIS> => {
+        const response = await apiClient.get('/seguros/captcha', { params: { dni } });
         return response.data;
     },
+    // Paso 2: consulta el portal con el Captcha resuelto por el usuario.
     verificarCaptcha: async (data: {
         dni: string;
-        digitoVerificador: string;
         fechaNacimiento: string;
         codigoCaptcha: string;
         token?: string;
@@ -47,8 +60,12 @@ export const segurosApi = {
         const response = await apiClient.post('/seguros/verificar-captcha', data);
         return response.data;
     },
-    calcularDigito: async (dni: string): Promise<string> => {
-        const response = await apiClient.get('/seguros/digito-verificador', { params: { dni } });
-        return response.data.digito;
-    },
 };
+
+export interface SesionVerificacionSIS {
+    ok: boolean;
+    simulado: boolean;               // true solo en modo DEMO del backend (sin portal ni Captcha)
+    token: string;
+    captchaImage: string;
+    fechaNacimiento: string | null;  // la registrada en el sistema, para precargar el formulario
+}

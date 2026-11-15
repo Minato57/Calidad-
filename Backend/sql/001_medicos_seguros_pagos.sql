@@ -110,11 +110,23 @@ CREATE TABLE `horarios` (
 -- =================================================================
 -- 5) FECHAS BLOQUEADAS
 -- =================================================================
+-- Fechas sin atención para una especialidad (las crea la cancelación masiva).
+-- El calendario y la reserva no ofrecen esa fecha. id_especialidad NULL = todas.
 CREATE TABLE `fechas_bloqueadas` (
   `id_bloqueo` int NOT NULL AUTO_INCREMENT,
   `fecha` date NOT NULL,
-  `motivo` varchar(200) DEFAULT NULL,
-  PRIMARY KEY (`id_bloqueo`)
+  `id_especialidad` int DEFAULT NULL,
+  `motivo` varchar(300) DEFAULT NULL,
+  `creado_por` int DEFAULT NULL,
+  `fecha_registro` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id_bloqueo`),
+  UNIQUE KEY `uk_fecha_especialidad` (`fecha`,`id_especialidad`),
+  KEY `fk_bloqueo_especialidad` (`id_especialidad`),
+  KEY `fk_bloqueo_usuario` (`creado_por`),
+  CONSTRAINT `fk_bloqueo_especialidad` FOREIGN KEY (`id_especialidad`)
+    REFERENCES `especialidades` (`id_especialidad`),
+  CONSTRAINT `fk_bloqueo_usuario` FOREIGN KEY (`creado_por`)
+    REFERENCES `usuarios` (`id_usuario`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- =================================================================
@@ -127,10 +139,13 @@ CREATE TABLE `citas` (
   `id_dependiente` int DEFAULT NULL,                  -- id_usuario del familiar (rol FAMILIAR)
   `motivo` text,
   `notas` text,
-  `estado` enum('RESERVADA','CONFIRMADA','RECORDATORIO','COMPLETADA','CANCELADA','FALTA') DEFAULT 'RESERVADA',
+  -- RESERVADA -> COMPLETADA | FALTA (admisión / médico / cierre nocturno) | CANCELADA
+  `estado` enum('RESERVADA','COMPLETADA','CANCELADA','FALTA') DEFAULT 'RESERVADA',
   `fecha_registro` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id_cita`),
-  UNIQUE KEY `id_horario` (`id_horario`),
+  -- No es UNIQUE: un horario cancelado puede volver a reservarse (nueva cita).
+  -- Que solo haya una cita activa por horario lo garantiza la reserva (transacción).
+  KEY `idx_citas_horario` (`id_horario`),
   KEY `id_usuario` (`id_usuario`),
   KEY `id_dependiente` (`id_dependiente`),
   CONSTRAINT `citas_ibfk_1` FOREIGN KEY (`id_usuario`)
@@ -166,7 +181,8 @@ CREATE TABLE `notificaciones` (
   `id_notificacion` int NOT NULL AUTO_INCREMENT,
   `id_cita` int DEFAULT NULL,
   `id_usuario` int NOT NULL,
-  `tipo` enum('RECORDATORIO','CANCELACION','BLOQUEO_CUENTA') NOT NULL,
+  -- SANCION: inasistencia/cancelación tardía registrada · BLOQUEO_CUENTA: suspensión · SEGURO: avisos del SIS
+  `tipo` enum('RECORDATORIO','CANCELACION','SANCION','BLOQUEO_CUENTA','SEGURO') NOT NULL,
   `mensaje` text NOT NULL,
   `enviado` tinyint(1) DEFAULT 0,                     -- mostrada en la app (buzón)
   `correo_enviado` tinyint(1) NOT NULL DEFAULT 0,     -- enviada por email (independiente de 'enviado')
@@ -200,7 +216,7 @@ CREATE TABLE `configuracion_sistema` (
 CREATE TABLE `sesiones` (
   `id_sesion` int NOT NULL AUTO_INCREMENT,
   `id_usuario` int NOT NULL,
-  `token` varchar(500) DEFAULT NULL,
+  `token` varchar(500) DEFAULT NULL,               -- id de sesión (jti) del JWT, NO el JWT; el logout borra la fila
   `fecha_inicio` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `fecha_expiracion` datetime DEFAULT NULL,
   PRIMARY KEY (`id_sesion`),
@@ -266,7 +282,10 @@ CREATE TABLE IF NOT EXISTS `atenciones` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- =================================================================
--- 14) SEGUROS CONSULTAS  (Caché y persistencia de verificación SIS)
+-- 14) SEGUROS CONSULTAS  (verificación del SIS por DNI: titular o familiar)
+--   Sin fila            -> SIN VERIFICAR (se pide en la primera reserva)
+--   asegurado = 1       -> SIS activo, vigente 90 días desde consultado_en
+--   asegurado = 0       -> sin SIS, permanente hasta que el paciente recalibre
 -- =================================================================
 CREATE TABLE IF NOT EXISTS `seguros_consultas` (
   `dni`            CHAR(8)      NOT NULL,
@@ -276,6 +295,7 @@ CREATE TABLE IF NOT EXISTS `seguros_consultas` (
   `verificado`     TINYINT(1)   NOT NULL DEFAULT 0,
   `detalle`        VARCHAR(255) NULL,
   `consultado_en`  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `aviso_vencimiento_enviado` TINYINT(1) NOT NULL DEFAULT 0 COMMENT 'Correo de aviso 7 días antes del vencimiento',
   PRIMARY KEY (`dni`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
@@ -349,12 +369,14 @@ INSERT INTO `configuracion_sistema` (clave, valor, descripcion) VALUES
 INSERT INTO `correos_remitentes` (correo, app_password, nombre_remitente, activo, prioridad) VALUES
 ('mpea.suarezjhair@gmail.com', 'xxxx xxxx xxxx xxxx', 'Centro de Salud San Genaro de Villa', 1, 0);
 
--- ---------- SEGUROS VERIFICADOS (SEED) ----------
--- Datos reales del portal SIS verificados (DNI 70905745 activo)
+-- ---------- SEGUROS (SEED DE DEMOSTRACIÓN) ----------
+-- Filas de DEMO (fuente SIMULADO): NO provienen del portal del SIS.
+-- Solo se respetan con SEGURO_PROVIDER=simulado; en modo portal se ignoran y
+-- el paciente debe verificarse con el Captcha del portal oficial.
 INSERT INTO `seguros_consultas` (dni, tipo, asegurado, fuente, verificado, detalle, consultado_en) VALUES
-('70905745', 'SIS', 1, 'SIS_SCRAPER', 1, 'TITULAR - ACTIVO (SUAREZ INFANTES JHAIR FABIAN)', NOW()),
-('76543210', 'NINGUNO', 0, 'SIS_SCRAPER', 1, 'NO ASEGURADO AL SIS (JUAN PEREZ)', NOW())
-ON DUPLICATE KEY UPDATE tipo = VALUES(tipo), asegurado = VALUES(asegurado), verificado = VALUES(verificado), detalle = VALUES(detalle);
+('70905745', 'SIS', 1, 'SIMULADO', 1, 'MODO DEMO: SIS activo (semilla)', NOW()),
+('76543210', 'NINGUNO', 0, 'SIMULADO', 1, 'MODO DEMO: sin SIS (semilla)', NOW())
+ON DUPLICATE KEY UPDATE tipo = VALUES(tipo), asegurado = VALUES(asegurado), fuente = VALUES(fuente), verificado = VALUES(verificado), detalle = VALUES(detalle);
 
 -- =================================================================
 -- FIN DEL SCRIPT
@@ -362,9 +384,13 @@ ON DUPLICATE KEY UPDATE tipo = VALUES(tipo), asegurado = VALUES(asegurado), veri
 -- Usuarios de prueba (contraseña: admin123):
 --   admin@carenest.pe     → ADMIN
 --   admision@carenest.pe  → ADMISION
---   juan@gmail.com        → PACIENTE (Sin SIS -> paga S/ 20 con Mercado Pago)
---   medico@carenest.pe    → MEDICO (crear con 002_usuario_medico.sql)
---   jhair@gmail.com       → PACIENTE (Con SIS ACTIVO -> Cita Gratuita)
+--   juan@gmail.com        → PACIENTE
+--   jhair@gmail.com       → PACIENTE
+--
+-- SIS: con SEGURO_PROVIDER=portal cada paciente verifica su afiliación en el
+-- portal oficial (Captcha); sin verificación vigente se cobra la consulta.
+-- Con SEGURO_PROVIDER=simulado (solo demo) valen las filas semilla de arriba:
+-- jhair -> SIS activo (cita gratuita), juan -> sin SIS (paga con Mercado Pago).
 --
 -- Los horarios y citas comienzan vacíos (se crean al reservar).
 -- El remitente de correo queda cargado; solo falta poner su app_password real.

@@ -10,6 +10,7 @@ import { Boton } from '../../components/common/Boton';
 import { Input } from '../../components/common/Input';
 
 import { useTranslation } from '../../i18n';
+import { mensajeErrorApi } from '../../utils/errores';
 import { adminApi } from '../../api/adminApi';
 import { Especialidad } from '../../types';
 
@@ -44,13 +45,14 @@ export const CancelacionMasiva = () => {
         try {
             const res = await adminApi.cancelacionMasiva({ fecha, id_especialidad: esp, motivo: motivo.trim() });
             if (res.ok) {
-                setMsg({ texto: `✓ ${res.afectadas ?? 0} cita(s) cancelada(s) y pacientes notificados`, ok: true });
+                setMsg({ texto: `✓ ${res.afectadas ?? 0} cita(s) cancelada(s) y pacientes notificados. Esa fecha quedó bloqueada para nuevas reservas de la especialidad.`, ok: true });
                 setFecha(''); setEsp(0); setMotivo('');
             } else {
                 setMsg({ texto: res.mensaje, ok: false });
             }
-        } catch {
-            setMsg({ texto: 'Error al procesar la cancelación', ok: false });
+        } catch (err) {
+            // 404 = no había citas activas; 400 = fecha pasada o datos inválidos
+            setMsg({ texto: mensajeErrorApi(err, 'Error al procesar la cancelación'), ok: false });
         } finally {
             setProcesando(false);
         }
@@ -73,7 +75,9 @@ export const CancelacionMasiva = () => {
                         </div>
 
                         <form onSubmit={cancelar} className="space-y-4">
-                            <Input label={t.fecha} type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} required />
+                            <Input label={t.fecha} type="date" value={fecha} onChange={(e) => setFecha(e.target.value)}
+                                min={(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; })()}
+                                required />
 
                             <div>
                                 <label className="block text-xs font-semibold text-ink-soft mb-2">{t.especialidad}</label>

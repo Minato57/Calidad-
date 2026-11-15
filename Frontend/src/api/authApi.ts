@@ -17,7 +17,7 @@ export interface RegistroPayload {
     apellidos: string;
     telefono: string;
     genero: 'Masculino' | 'Femenino' | 'Otros';
-    fecha_nacimiento?: string;
+    fecha_nacimiento: string;   // obligatoria (la usa la verificación del SIS)
     direccion?: string;
 }
 

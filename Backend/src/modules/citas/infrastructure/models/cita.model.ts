@@ -8,6 +8,7 @@ import {
     Column,
     CreateDateColumn,
 } from 'typeorm';
+import { ESTADOS_CITA, EstadoCita } from '../../domain/entities/cita.entity';
 
 @Entity('citas')
 export class CitaModel {
@@ -31,23 +32,10 @@ export class CitaModel {
 
     @Column({
         type: 'enum',
-        enum: [
-            'RESERVADA',
-            'CONFIRMADA',
-            'RECORDATORIO',
-            'COMPLETADA',
-            'CANCELADA',
-            'FALTA',
-        ],
+        enum: [...ESTADOS_CITA],
         default: 'RESERVADA',
     })
-    estado!:
-        | 'RESERVADA'
-        | 'CONFIRMADA'
-        | 'RECORDATORIO'
-        | 'COMPLETADA'
-        | 'CANCELADA'
-        | 'FALTA';
+    estado!: EstadoCita;
 
     @CreateDateColumn()
     fecha_registro!: Date;

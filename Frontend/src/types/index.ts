@@ -32,7 +32,8 @@ export interface Usuario {
 }
 
 // ----- Citas -----
-export type EstadoCita = 'RESERVADA' | 'CONFIRMADA' | 'RECORDATORIO' | 'COMPLETADA' | 'FALTA' | 'CANCELADA';
+// RESERVADA → COMPLETADA | FALTA (admisión / médico / cierre nocturno) | CANCELADA
+export type EstadoCita = 'RESERVADA' | 'COMPLETADA' | 'FALTA' | 'CANCELADA';
 
 export interface Especialidad {
     id_especialidad: number;
@@ -92,7 +93,7 @@ export interface ContadoresPaciente {
 }
 
 // ----- Notificaciones -----
-export type TipoNotificacion = 'CANCELACION' | 'RECORDATORIO';
+export type TipoNotificacion = 'CANCELACION' | 'RECORDATORIO' | 'SANCION' | 'BLOQUEO_CUENTA' | 'SEGURO';
 
 export interface Notificacion {
     id_notificacion: number;
@@ -232,24 +233,55 @@ export interface ReporteEquidad {
 }
 
 // ----- Panel del medico / seguro / pagos -----
+// SIN_VERIFICAR: nunca validado · CON_SIS: activo (vigente 90 días)
+// VENCIDO: pasó la vigencia · SIN_SIS: verificado sin SIS (permanente hasta recalibrar)
+export type EstadoSeguro = 'SIN_VERIFICAR' | 'CON_SIS' | 'VENCIDO' | 'SIN_SIS';
+
 export interface SeguroInfo {
     dni: string;
+    estado: EstadoSeguro;
     tipo: 'SIS' | 'NINGUNO' | 'DESCONOCIDO';
     tiene_seguro: boolean;
     fuente: 'SIS_SCRAPER' | 'SIMULADO';
     verificado: boolean;
     detalle?: string;
-    consultado_en: string;
-    desde_cache: boolean;
+    consultado_en: string | null;
+    vence_en: string | null;
+    puede_recalibrar: boolean;
+    recalibrar_desde: string | null;
+}
+
+export interface PersonaSeguro {
+    id_usuario: number;
+    es_titular: boolean;
+    nombres: string;
+    apellidos: string;
+    parentesco: string | null;
+    dni: string | null;
+    seguro: SeguroInfo | null;
+}
+
+// Pago aprobado reutilizable de un paciente (no usado o de una cita cancelada)
+export interface SaldoAFavor {
+    id_pago: number;
+    monto: number;
+    creado_en: string;
 }
 
 export interface RequisitoPago {
     ok: boolean;
     dni: string;
     seguro: SeguroInfo;
-    requiere_pago: boolean;
+    requiere_pago: boolean;        // debe pagar dinero nuevo en Mercado Pago
+    saldo: SaldoAFavor | null;
+    usa_saldo: boolean;            // la cita se cubre con el saldo a favor
     monto: number;
     moneda: 'PEN';
+}
+
+export interface SaldoPaciente extends SaldoAFavor {
+    dni: string;
+    paciente: string;
 }
 
 export interface CheckoutPago {

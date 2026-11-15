@@ -3,24 +3,11 @@
 // Contrato del repositorio de horarios.
 // =================================================================
 import { Horario } from '../entities/horario.entity';
+import { Tx } from '../../../../shared/db/transaccion';
 
 export interface IHorarioRepository {
-    findDisponibles(fecha: string, idEspecialidad: number): Promise<Horario[]>;
     findById(id: number): Promise<Horario | null>;
-    marcarNoDisponible(id: number): Promise<void>;
 
-    // Nuevos (Enfoque A1)
-    obtenerMedicoDeEspecialidad(idEspecialidad: number): Promise<{
-        id_medico: number;
-        nombres: string;
-        apellidos: string;
-        id_especialidad: number;
-    } | null>;
-
-    findByMedicoFechaHora(idMedico: number, fecha: string, hora: string): Promise<{
-        id_horario: number;
-        disponible: boolean;
-    } | null>;
-
-    crearHorario(idMedico: number, fecha: string, hora: string): Promise<number>;
+    /** Toma (crea o reutiliza si solo tiene citas canceladas) el horario dentro de la transacción de la reserva. */
+    tomarHorario(tx: Tx, idMedico: number, fecha: string, hora: string): Promise<number>;
 }

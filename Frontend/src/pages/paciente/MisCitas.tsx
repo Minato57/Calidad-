@@ -17,7 +17,8 @@ import {
 import { useTranslation } from '../../i18n';
 import { citasApi } from '../../api/citasApi';
 import { CitaConDetalles, EstadoCita } from '../../types';
-import { formatearFecha, formatearHora, diasDesdeHoy } from '../../utils/formatters';
+import { formatearFecha, formatearHora, diasDesdeHoy, citaYaInicio } from '../../utils/formatters';
+import { mensajeErrorApi } from '../../utils/errores';
 
 type Filtro = 'TODAS' | EstadoCita;
 
@@ -86,8 +87,9 @@ export const MisCitas = () => {
                 bloqueada: !!res.cuentaBloqueada,
                 sancionada: !!res.sancionada,
             });
-        } catch {
-            setResultado({ mensaje: 'No se pudo cancelar la cita', bloqueada: false, sancionada: false });
+        } catch (err) {
+            await cargar();
+            setResultado({ mensaje: mensajeErrorApi(err, 'No se pudo cancelar la cita'), bloqueada: false, sancionada: false });
         } finally {
             setCancelandoId(null);
         }
@@ -104,7 +106,7 @@ export const MisCitas = () => {
     const filtradas = useMemo(() => {
         return citas.filter(c => {
             if (filtro === 'RESERVADA') {
-                if (c.estado !== 'RESERVADA' && c.estado !== 'CONFIRMADA' && c.estado !== 'RECORDATORIO') return false;
+                if (c.estado !== 'RESERVADA') return false;
             } else if (filtro !== 'TODAS') {
                 if (c.estado !== filtro) return false;
             }
@@ -168,8 +170,11 @@ export const MisCitas = () => {
         { id: 'CANCELADA', label: t.filtroCanceladas },
     ];
 
-    const esCancelable = (estado: EstadoCita) =>
-        ['RESERVADA', 'CONFIRMADA', 'RECORDATORIO'].includes(estado);
+    const esActiva = (estado: EstadoCita) =>
+        estado === 'RESERVADA';
+    // Una cita pasada no se puede cancelar (el backend también lo valida)
+    const esCancelable = (cita: CitaConDetalles) =>
+        esActiva(cita.estado) && !citaYaInicio(cita.fecha, cita.hora);
 
     return (
         <div className="min-h-screen bg-smoke">
@@ -324,7 +329,7 @@ export const MisCitas = () => {
                                             </p>
                                             <p className="text-xs text-mute">
                                                 {formatearHora(cita.hora ?? '')}
-                                                {esCancelable(cita.estado) && cita.fecha && (
+                                                {esCancelable(cita) && cita.fecha && (
                                                     <span className="ml-2 text-sky-main font-bold">
                                                         · {diasDesdeHoy(cita.fecha)}
                                                     </span>
@@ -341,7 +346,7 @@ export const MisCitas = () => {
                                         </div>
                                     )}
 
-                                    {esCancelable(cita.estado) && (
+                                    {esCancelable(cita) && (
                                         <div className="mt-3 pt-3 border-t border-gray-100 flex justify-end">
                                             <Boton
                                                 tamano="sm"

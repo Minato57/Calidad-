@@ -23,7 +23,9 @@ import {
     formatearHora,
     diasDesdeHoy,
     obtenerIniciales,
+    citaYaInicio,
 } from '../../utils/formatters';
+import { mensajeErrorApi } from '../../utils/errores';
 
 export const Dashboard = () => {
     const navigate = useNavigate();
@@ -42,7 +44,8 @@ export const Dashboard = () => {
         try {
             const citas = await citasApi.misCitas();
             const futuras = citas
-                .filter(c => c.estado === 'RESERVADA' || c.estado === 'CONFIRMADA' || c.estado === 'RECORDATORIO')
+                .filter(c => c.estado === 'RESERVADA')
+                .filter(c => !citaYaInicio(c.fecha, c.hora))   // la "próxima" no puede ser una que ya pasó
                 .sort((a, b) => {
                     const fa = new Date(`${a.fecha}T${a.hora}`).getTime();
                     const fb = new Date(`${b.fecha}T${b.hora}`).getTime();
@@ -72,8 +75,9 @@ export const Dashboard = () => {
                 bloqueada: !!res.cuentaBloqueada,
                 sancionada: !!res.sancionada,
             });
-        } catch {
-            setResultado({ mensaje: 'No se pudo cancelar la cita', bloqueada: false, sancionada: false });
+        } catch (err) {
+            await cargarCitas();
+            setResultado({ mensaje: mensajeErrorApi(err, 'No se pudo cancelar la cita'), bloqueada: false, sancionada: false });
         } finally {
             setCancelando(false);
         }
@@ -188,6 +192,9 @@ export const Dashboard = () => {
                                             reservadaLabel={t.estadoReservada.toUpperCase()}
                                             recordatorioLabel={t.estadoRecordatorio.toUpperCase()}
                                             visitaLabel={t.visita}
+                                            recordatorioEnviado={
+                                                new Date(`${proximaCita.fecha}T${proximaCita.hora}`).getTime() - Date.now() <= 24 * 3_600_000
+                                            }
                                         />
                                     </div>
 
@@ -240,31 +247,42 @@ export const Dashboard = () => {
     );
 };
 
-const Timeline = ({ reservadaLabel, recordatorioLabel, visitaLabel }: {
+// Línea de tiempo de la próxima cita: Reservada → Recordatorio (aviso 24 h antes) → Visita.
+// El recordatorio es una NOTIFICACIÓN (no un estado): se marca como hecho cuando faltan 24 h o menos.
+const Timeline = ({ reservadaLabel, recordatorioLabel, visitaLabel, recordatorioEnviado }: {
     reservadaLabel: string;
     recordatorioLabel: string;
     visitaLabel: string;
+    recordatorioEnviado: boolean;
 }) => (
     <div className="flex items-start justify-between">
         <div className="flex flex-col items-center flex-1">
-            <div className="relative">
-                <div className="w-7 h-7 rounded-full bg-success flex items-center justify-center text-white text-xs font-bold">✓</div>
-                <div className="absolute inset-0 rounded-full border-2 border-success opacity-30 animate-pulse-ring" />
-            </div>
+            <div className="w-7 h-7 rounded-full bg-success flex items-center justify-center text-white text-xs font-bold">✓</div>
             <span className="text-[10px] font-bold text-success mt-2">{reservadaLabel}</span>
         </div>
         <div className="flex-1 h-0.5 bg-sky-main mt-3.5" />
         <div className="flex flex-col items-center flex-1">
-            <div className="relative">
-                <div className="w-7 h-7 rounded-full bg-sky-main" />
-                <div className="absolute inset-0 rounded-full border-2 border-sky-main opacity-40 animate-pulse-ring" />
-            </div>
-            <span className="text-[10px] font-bold text-sky-main mt-2">{recordatorioLabel}</span>
+            {recordatorioEnviado ? (
+                <div className="w-7 h-7 rounded-full bg-success flex items-center justify-center text-white text-xs font-bold">✓</div>
+            ) : (
+                <div className="relative">
+                    <div className="w-7 h-7 rounded-full bg-sky-main" />
+                    <div className="absolute inset-0 rounded-full border-2 border-sky-main opacity-40 animate-pulse-ring" />
+                </div>
+            )}
+            <span className={`text-[10px] font-bold mt-2 ${recordatorioEnviado ? 'text-success' : 'text-sky-main'}`}>{recordatorioLabel}</span>
         </div>
-        <div className="flex-1 h-0.5 mt-3.5 border-t-2 border-dashed border-gray-300" />
+        <div className={`flex-1 h-0.5 mt-3.5 ${recordatorioEnviado ? 'bg-sky-main' : 'border-t-2 border-dashed border-gray-300'}`} />
         <div className="flex flex-col items-center flex-1">
-            <div className="w-7 h-7 rounded-full bg-white border-2 border-gray-300" />
-            <span className="text-[10px] font-bold text-mute mt-2">{visitaLabel}</span>
+            {recordatorioEnviado ? (
+                <div className="relative">
+                    <div className="w-7 h-7 rounded-full bg-sky-main" />
+                    <div className="absolute inset-0 rounded-full border-2 border-sky-main opacity-40 animate-pulse-ring" />
+                </div>
+            ) : (
+                <div className="w-7 h-7 rounded-full bg-white border-2 border-gray-300" />
+            )}
+            <span className={`text-[10px] font-bold mt-2 ${recordatorioEnviado ? 'text-sky-main' : 'text-mute'}`}>{visitaLabel}</span>
         </div>
     </div>
 );

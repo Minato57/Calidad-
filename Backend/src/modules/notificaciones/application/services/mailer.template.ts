@@ -14,6 +14,9 @@ const GRIS_SUAVE   = '#777777';
 export function asuntoCorreo(tipo: string): string {
     if (tipo === 'CANCELACION') return 'Cancelación de tu cita - Centro de Salud San Genaro de Villa';
     if (tipo === 'RECORDATORIO') return 'Recordatorio de tu cita - Centro de Salud San Genaro de Villa';
+    if (tipo === 'SEGURO') return 'Renueva la verificación de tu SIS - Centro de Salud San Genaro de Villa';
+    if (tipo === 'SANCION') return 'Aviso sobre tu asistencia - Centro de Salud San Genaro de Villa';
+    if (tipo === 'BLOQUEO_CUENTA') return 'Tu cuenta fue suspendida - Centro de Salud San Genaro de Villa';
     return 'Notificación - Centro de Salud San Genaro de Villa';
 }
 

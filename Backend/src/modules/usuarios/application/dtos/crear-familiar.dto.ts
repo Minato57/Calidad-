@@ -5,8 +5,8 @@ import {
     Matches,
     MaxLength,
     IsIn,
-    IsOptional,
 } from 'class-validator';
+import { IsFechaNacimiento } from '../../../../shared/validators/fecha-nacimiento.validator';
 
 export class CrearFamiliarDTO {
     @IsNotEmpty({ message: 'Los nombres del familiar son obligatorios' })
@@ -24,9 +24,9 @@ export class CrearFamiliarDTO {
     @Matches(/^\d+$/, { message: 'El DNI debe contener solo números' })
     dni!: string;
 
-    @IsOptional()
-    @Matches(/^\d{4}-\d{2}-\d{2}$/, { message: 'La fecha debe tener formato YYYY-MM-DD' })
-    fecha_nacimiento?: string;
+    @IsNotEmpty({ message: 'La fecha de nacimiento del familiar es obligatoria' })
+    @IsFechaNacimiento()
+    fecha_nacimiento!: string;
 
     @IsNotEmpty({ message: 'El parentesco es obligatorio' })
     @IsIn(['Padre', 'Madre', 'Hermano', 'Hermana', 'Tio', 'Tia', 'Abuelo', 'Abuela', 'Apoderado', 'Otro'], {

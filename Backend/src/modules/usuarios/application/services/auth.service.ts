@@ -7,6 +7,7 @@ import { TokenBuilder } from '../../../../shared/builders/token.builder';
 
 import { IUserRepository } from '../../domain/repositories/IUserRepository';
 import { UserRepository } from '../../infrastructure/repositories/user.repository';
+import { SesionRepository, DURACION_SESION_HORAS } from '../../infrastructure/repositories/sesion.repository';
 import { LoginDTO } from '../dtos/login.dto';
 
 const DIAS_SUSPENSION_DEFAULT = 15;
@@ -14,6 +15,7 @@ const DIAS_SUSPENSION_DEFAULT = 15;
 export class AuthService {
 
     private repo: IUserRepository = new UserRepository();
+    private sesiones = new SesionRepository();
 
     async login(data: LoginDTO): Promise<
         | { ok: true; token: string; id_usuario: number; correo: string; nombres: string; apellidos: string; rol: string }
@@ -71,10 +73,13 @@ export class AuthService {
             }
         }
 
+        // Cada login abre una sesión revocable (el logout la elimina)
+        const jti = await this.sesiones.crear(user.id_usuario);
         const token = new TokenBuilder()
             .conUsuario(user.id_usuario)
             .conRol(user.rol as 'PACIENTE' | 'ADMIN' | 'ADMISION' | 'MEDICO')
-            .conExpiracion('1d')
+            .conSesion(jti)
+            .conExpiracion(`${DURACION_SESION_HORAS}h`)
             .firmar();
 
         return {
@@ -89,21 +94,12 @@ export class AuthService {
     }
     
     // ------------------------------------------------------------
-    // Con JWT el token es stateless. Este método confirma el cierre
-    // de sesión del usuario autenticado. El middleware authHandler
-    // ya verificó que el token era válido antes de llegar aquí, por
-    // lo que basta con registrar/confirmar el cierre.
+    // Cierra la sesión: elimina la sesión de la tabla `sesiones`, con lo
+    // que el token deja de ser válido de inmediato (authHandler lo rechaza).
     // ============================================================
-    logout(idUsuario: number): Promise<{ ok: true; mensaje: string }> {
-        // Punto único donde, a futuro, se podría invalidar la sesión
-        // en una lista negra o en la tabla 'sesiones' si se decide
-        // llevar registro de sesiones activas.
-        void idUsuario;
-
-        return Promise.resolve({
-            ok: true,
-            mensaje: 'Sesión cerrada correctamente',
-        });
+    async logout(idUsuario: number, jti: string): Promise<{ ok: true; mensaje: string }> {
+        await this.sesiones.revocar(idUsuario, jti);
+        return { ok: true, mensaje: 'Sesión cerrada correctamente' };
     }
 
     private async obtenerDias(clave: string, porDefecto: number): Promise<number> {

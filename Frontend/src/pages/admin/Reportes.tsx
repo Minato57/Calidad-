@@ -19,8 +19,6 @@ export const Reportes = () => {
     const estados = useMemo(() => [
         { value: '', label: t.todos },
         { value: 'RESERVADA', label: t.estadoReservada },
-        { value: 'CONFIRMADA', label: t.estadoConfirmada },
-        { value: 'RECORDATORIO', label: t.estadoRecordatorio },
         { value: 'COMPLETADA', label: t.estadoCompletada },
         { value: 'CANCELADA', label: t.estadoCancelada },
         { value: 'FALTA', label: t.estadoFalta },

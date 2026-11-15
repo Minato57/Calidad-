@@ -122,6 +122,15 @@ export const DropdownBuzon = ({ abierto, onCerrar, onCambioNoLeidas }: DropdownB
     );
 };
 
+// ============== Estilo por tipo de notificación ==============
+const ESTILO_NOTIFICACION: Record<string, { titulo: string; fondo: string; color: string; icono: string }> = {
+    RECORDATORIO:   { titulo: 'Recordatorio',      fondo: 'bg-sky-soft',     color: 'bg-sky-main', icono: '⏰' },
+    CANCELACION:    { titulo: 'Cancelación',       fondo: 'bg-danger-soft',  color: 'bg-danger',   icono: '✕' },
+    SANCION:        { titulo: 'Aviso de sanción',  fondo: 'bg-warning-soft', color: 'bg-warning',  icono: '⚠' },
+    BLOQUEO_CUENTA: { titulo: 'Cuenta suspendida', fondo: 'bg-danger-soft',  color: 'bg-danger',   icono: '⛔' },
+    SEGURO:         { titulo: 'Seguro SIS',        fondo: 'bg-warning-soft', color: 'bg-warning',  icono: '🏛️' },
+};
+
 // ============== Item individual ==============
 interface ItemProps {
     notificacion: Notificacion;
@@ -129,20 +138,13 @@ interface ItemProps {
 }
 
 const ItemNotificacion = ({ notificacion: n, onClick }: ItemProps) => {
-    const esRecordatorio = n.tipo === 'RECORDATORIO';
-    const titulo = esRecordatorio ? 'Recordatorio' : 'Cancelación';
+    const estilo = ESTILO_NOTIFICACION[n.tipo] ?? ESTILO_NOTIFICACION.RECORDATORIO;
+    const titulo = estilo.titulo;
 
     // Estilos según leída o no, y tipo
-    const fondoNoLeida = esRecordatorio ? 'bg-sky-soft' : 'bg-danger-soft';
-    const fondo = n.leida ? 'bg-white hover:bg-smoke' : fondoNoLeida;
-
-    const iconoColor = n.leida
-        ? 'bg-gray-300'
-        : esRecordatorio
-            ? 'bg-sky-main'
-            : 'bg-danger';
-
-    const icono = esRecordatorio ? '⏰' : '✕';
+    const fondo = n.leida ? 'bg-white hover:bg-smoke' : estilo.fondo;
+    const iconoColor = n.leida ? 'bg-gray-300' : estilo.color;
+    const icono = estilo.icono;
 
     return (
         <div

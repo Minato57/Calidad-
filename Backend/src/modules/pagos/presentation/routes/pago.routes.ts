@@ -9,6 +9,7 @@ const controller = new PagoController();
 router.post('/webhook', controller.webhook);
 
 router.get('/requisito',     authHandler({ roles: ['PACIENTE'] }), controller.requisito);
+router.get('/saldos',        authHandler({ roles: ['PACIENTE'] }), controller.saldos);
 router.post('/checkout',     authHandler({ roles: ['PACIENTE'] }), controller.checkout);
 router.get('/:id/verificar', authHandler({ roles: ['PACIENTE'] }), controller.verificar);
 

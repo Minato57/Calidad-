@@ -14,39 +14,16 @@ import { Repository } from 'typeorm';
 
 import { AppDataSource } from '../../../../config/datasource';
 import { HorarioModel } from '../models/horario.model';
-import { MedicoModel } from '../models/medico.model';
 import { IHorarioRepository } from '../../domain/repositories/IHorarioRepository';
 import { Horario } from '../../domain/entities/horario.entity';
 import { HorarioMapping } from '../mapping/horario.mapping';
+import { Tx, ErrorNegocio, esConflictoConcurrente } from '../../../../shared/db/transaccion';
 
 export class HorarioRepository implements IHorarioRepository {
     private repo: Repository<HorarioModel>;
-    private medicoRepo: Repository<MedicoModel>;
 
     constructor() {
         this.repo = AppDataSource.getRepository(HorarioModel);
-        this.medicoRepo = AppDataSource.getRepository(MedicoModel);
-    }
-
-    /**
-     * (Método original - se mantiene por compatibilidad)
-     * Devuelve horarios disponibles ya existentes en BD.
-     */
-    async findDisponibles(
-        fecha: string,
-        idEspecialidad: number,
-    ): Promise<Horario[]> {
-        const models = await this.repo
-            .createQueryBuilder('h')
-            .innerJoin('medicos', 'm', 'm.id_medico = h.id_medico')
-            .where('h.fecha = :fecha', { fecha })
-            .andWhere('m.id_especialidad = :idEsp', { idEsp: idEspecialidad })
-            .andWhere('h.disponible = TRUE')
-            .andWhere('(h.hora < "12:00:00" OR h.hora >= "13:00:00")')
-            .orderBy('h.hora', 'ASC')
-            .getMany();
-
-        return models.map(m => HorarioMapping.toDomain(m));
     }
 
     async findById(id: number): Promise<Horario | null> {
@@ -57,72 +34,44 @@ export class HorarioRepository implements IHorarioRepository {
         return HorarioMapping.toDomain(model);
     }
 
-    async marcarNoDisponible(id: number): Promise<void> {
-        await this.repo.update(
-            { id_horario: id },
-            { disponible: false },
-        );
-    }
-
     // ============================================================
-    // NUEVO (Enfoque A1): obtener el médico de una especialidad
+    // Toma un horario (médico+fecha+hora) para una reserva, DENTRO
+    // de la transacción de la reserva. Devuelve su id_horario.
+    //
+    //  - Si el horario no existe se crea (ya ocupado).
+    //  - Si existe y TODAS sus citas están canceladas, se reutiliza
+    //    (permite volver a reservar un horario que fue cancelado).
+    //  - Si tiene una cita no cancelada → ErrorNegocio (ocupado).
+    //
+    // La fila se bloquea con FOR UPDATE y el UNIQUE(id_medico,fecha,hora)
+    // protege la creación, así dos reservas simultáneas no toman el mismo
+    // horario. La fecha viaja como string para evitar desfases de zona horaria.
     // ============================================================
-    async obtenerMedicoDeEspecialidad(idEspecialidad: number): Promise<MedicoModel | null> {
-        return await this.medicoRepo.findOne({
-            where: { id_especialidad: idEspecialidad },
-        });
-    }
-
-    // ============================================================
-    // NUEVO (Enfoque A1): buscar un horario por médico+fecha+hora.
-    // Sirve para saber si ese slot ya fue creado/reservado.
-    // La fecha se pasa como string puro (sin new Date).
-    // ============================================================
-    async findByMedicoFechaHora(
-        idMedico: number,
-        fecha: string,
-        hora: string,
-    ): Promise<HorarioModel | null> {
-        return await this.repo.findOne({
-            where: {
-                id_medico: idMedico,
-                fecha: fecha as any,
-                hora,
-            },
-        });
-    }
-
-    // ============================================================
-    // NUEVO (Enfoque A1): crear un horario en BD al momento de
-    // reservar. Devuelve el id_horario recién creado.
-    // La fecha se guarda como string puro (sin new Date) para
-    // evitar el desfase de zona horaria.
-    // ============================================================
-    async crearHorario(
-        idMedico: number,
-        fecha: string,
-        hora: string,
-    ): Promise<number> {
-        const nuevo = this.repo.create({
-            id_medico: idMedico,
-            fecha: fecha as any,
-            hora,
-            tipo_visita: 'PRESENCIAL',
-            disponible: false, // se crea ya ocupado (se está reservando)
-        });
+    async tomarHorario(tx: Tx, idMedico: number, fecha: string, hora: string): Promise<number> {
+        const ocupado = new ErrorNegocio('Ese horario ya fue reservado, selecciona otro.');
         try {
-            const guardado = await this.repo.save(nuevo);
-            return guardado.id_horario;
-        } catch (err: any) {
-            // Si dos reservas simultáneas intentan tomar el mismo slot,
-            // el UNIQUE (id_medico, fecha, hora) de la BD lanza este error.
-            // Lo convertimos en un error de negocio controlado en vez de un 500.
-            if (err?.code === 'ER_DUP_ENTRY' || err?.errno === 1062) {
-                const e: any = new Error('Ese horario ya fue reservado, selecciona otro.');
-                e.status = 409;
-                e.esConflictoHorario = true;
-                throw e;
+            const filas = await tx.query(
+                `SELECT id_horario FROM horarios WHERE id_medico = ? AND fecha = ? AND hora = ? FOR UPDATE`,
+                [idMedico, fecha, hora],
+            );
+            if (filas.length > 0) {
+                const idHorario = Number(filas[0].id_horario);
+                const [{ activas }] = await tx.query(
+                    `SELECT COUNT(*) AS activas FROM citas WHERE id_horario = ? AND estado <> 'CANCELADA'`,
+                    [idHorario],
+                );
+                if (Number(activas) > 0) throw ocupado;
+                await tx.query(`UPDATE horarios SET disponible = 0 WHERE id_horario = ?`, [idHorario]);
+                return idHorario;
             }
+            const ins = await tx.query(
+                `INSERT INTO horarios (id_medico, fecha, hora, tipo_visita, disponible) VALUES (?, ?, ?, 'PRESENCIAL', 0)`,
+                [idMedico, fecha, hora],
+            );
+            return Number(ins.insertId);
+        } catch (err: any) {
+            // Otra reserva tomó el mismo horario a la vez (UNIQUE o bloqueo mutuo).
+            if (esConflictoConcurrente(err)) throw ocupado;
             throw err;
         }
     }

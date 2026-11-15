@@ -23,7 +23,6 @@ import { AdminRepository } from '../../infrastructure/repositories/admin.reposit
 
 import { CancelacionMasivaDTO } from '../dto/cancelacion-masiva.dto';
 import { NuevaEspecialidadDTO } from '../dto/nueva-especialidad.dto';
-import { InhabilitarEspecialidadDTO } from '../dto/inhabilitar-especialidad.dto';
 import { ConfigurarSancionesDTO } from '../dto/configurar-sanciones.dto';
 import { CrearAdmisionDTO } from '../dto/crear-admision.dto';
 import { CrearMedicoDTO } from '../dto/crear-medico.dto';
@@ -37,42 +36,31 @@ export class AdminService {
     // 1) CANCELACIÓN MASIVA DE CITAS
     // ============================================================
     async cancelarMasivo(adminId: number, data: CancelacionMasivaDTO) {
-        // a) Intentar cancelar las citas
-        const resultado = await this.repo.cancelarCitasPorFechaEspecialidad(
-            data.fecha,
-            data.id_especialidad,
-            data.motivo,
-        );
-
-        // b) Si no hay citas para cancelar, rechazar la operación
-        if (resultado.afectadas === 0) {
-            return {
-                ok: false,
-                mensaje: 'No hay citas para cancelar en esa fecha y especialidad',
-            };
+        // No tiene sentido cancelar citas de días que ya pasaron
+        const hoy = new Date();
+        const hoyStr = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`;
+        if (data.fecha < hoyStr) {
+            return { ok: false, status: 400, mensaje: 'No se pueden cancelar citas de una fecha pasada' };
         }
 
-        // c) Registrar la fecha bloqueada (auditoría)
-        await this.repo.registrarFechaBloqueada(
-            data.fecha,
-            data.id_especialidad,
-            data.motivo,
-            adminId,
-        );
+        // Cancelar + liberar horarios + bloquear la fecha + notificar (todo o nada)
+        const resultado = await this.repo.cancelacionMasiva({
+            fecha: data.fecha,
+            idEspecialidad: data.id_especialidad,
+            motivo: data.motivo.trim(),
+            creadoPor: adminId,
+        });
 
-        // d) Notificar a los pacientes afectados
-        const mensaje = `Su cita ha sido cancelada debido a: ${data.motivo}`;
-        await this.repo.insertarNotificacionesMasivas(
-            resultado.idsUsuariosAfectados,
-            null,
-            mensaje,
-        );
+        if (resultado.afectadas === 0) {
+            return { ok: false, status: 404, mensaje: 'No hay citas para cancelar en esa fecha y especialidad' };
+        }
 
         return {
             ok: true,
             mensaje: 'Cancelación masiva ejecutada correctamente',
+            afectadas: resultado.afectadas,
             citas_canceladas: resultado.afectadas,
-            pacientes_notificados: resultado.idsUsuariosAfectados.length,
+            pacientes_notificados: resultado.pacientesNotificados,
         };
     }
 
@@ -102,33 +90,7 @@ export class AdminService {
         };
     }
 
-    // ============================================================
-    // 3) INHABILITAR ESPECIALIDAD TEMPORALMENTE
-    // ============================================================
-    async inhabilitarEspecialidad(
-        adminId: number,
-        data: InhabilitarEspecialidadDTO,
-    ) {
-        if (new Date(data.desde) > new Date(data.hasta)) {
-            return {
-                ok: false,
-                mensaje: 'La fecha desde no puede ser posterior a la fecha hasta',
-            };
-        }
-
-        await this.repo.inhabilitarEspecialidad(
-            data.id_especialidad,
-            data.desde,
-            data.hasta,
-            data.motivo,
-            adminId,
-        );
-
-        return {
-            ok: true,
-            mensaje: 'Especialidad inhabilitada exitosamente',
-        };
-    }
+    // (3) La inhabilitación temporal se programa con programarEspecialidad (Fase 3).
 
     // ============================================================
     // 4a) CONFIGURAR SANCIONES

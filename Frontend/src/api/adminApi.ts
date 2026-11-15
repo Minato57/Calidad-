@@ -16,10 +16,6 @@ export const adminApi = {
         return response.data;
     },
 
-    inhabilitarEspecialidad: async (id_especialidad: number): Promise<{ ok: boolean; mensaje: string }> => {
-        const response = await apiClient.put('/admin/especialidad/inhabilitar', { id_especialidad });
-        return response.data;
-    },
 
     // ----- Médicos -----
     listarMedicos: async (): Promise<Medico[]> => {

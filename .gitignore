@@ -34,3 +34,20 @@ pnpm-debug.log*
 Thumbs.db
 .DS_Store
 
+# Herramientas de IA / agentes (skills, configuración local, Spec Kit)
+.agents/
+.claude/
+.specify/
+agent/
+skills-lock.json
+CLAUDE.md
+AGENTS.md
+HANDOFF.md
+
+# Material de contexto local (informe y capturas con datos personales: DNI y nombres)
+Contexto/
+
+# Archivos temporales de pruebas manuales
+Backend/src/__*.ts
+Backend/__*.js
+

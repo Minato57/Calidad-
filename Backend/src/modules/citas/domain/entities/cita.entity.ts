@@ -3,14 +3,16 @@
 // Entidad PURA del dominio "Cita".
 // Representa la reserva de un paciente sobre un horario específico.
 //
-// Estados posibles (línea de tiempo del proyecto):
-//   RESERVADA    -> recién creada
-//   CONFIRMADA   -> confirmada por el sistema/admisión
-//   RECORDATORIO -> notificación enviada 24h antes
-//   COMPLETADA   -> el paciente asistió y terminó la consulta
-//   CANCELADA    -> cancelada por el paciente o por admin
-//   FALTA        -> el paciente no asistió
+// Estados posibles:  RESERVADA → COMPLETADA | FALTA | CANCELADA
+//   RESERVADA  -> creada por el paciente, pendiente de atención
+//   COMPLETADA -> asistió (lo marca admisión, o el médico al registrar la atención)
+//   FALTA      -> no asistió (lo marca admisión o el cierre automático nocturno)
+//   CANCELADA  -> cancelada por el paciente o por el administrador
+// El recordatorio de 24 h es solo una NOTIFICACIÓN, no un estado.
 // =================================================================
+export const ESTADOS_CITA = ['RESERVADA', 'COMPLETADA', 'CANCELADA', 'FALTA'] as const;
+export type EstadoCita = typeof ESTADOS_CITA[number];
+
 export class Cita {
     constructor(
         public id_cita: number,
@@ -19,13 +21,7 @@ export class Cita {
         public id_dependiente: number | null,
         public motivo: string | null,
         public notas: string | null,
-        public estado:
-            | 'RESERVADA'
-            | 'CONFIRMADA'
-            | 'RECORDATORIO'
-            | 'COMPLETADA'
-            | 'CANCELADA'
-            | 'FALTA',
+        public estado: EstadoCita,
         public fecha_registro: Date,
     ) {}
 }

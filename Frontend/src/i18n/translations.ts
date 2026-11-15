@@ -103,7 +103,7 @@ export const traducciones: Record<Idioma, TraduccionEsquema> = {
 
         // Modales de cancelación
         cancelarEstaCita: '¿Cancelar esta cita?',
-        avisoCancelacionTardia: 'Si cancelas con menos de 24 horas de anticipación, contará como una cancelación tardía.',
+        avisoCancelacionTardia: 'Si cancelas con menos de 24 horas de anticipación, contará como una cancelación tardía (salvo que la hayas reservado hace menos de 1 hora).',
         avisoSuspensionCuenta: 'Acumular cancelaciones tardías puede suspender tu cuenta.',
         noMantener: 'No, mantener',
         siCancelar: 'Sí, cancelar',
@@ -405,7 +405,7 @@ export const traducciones: Record<Idioma, TraduccionEsquema> = {
 
         // Modales de cancelación
         cancelarEstaCita: 'Cancel this appointment?',
-        avisoCancelacionTardia: 'If you cancel less than 24 hours in advance, it will count as a late cancellation.',
+        avisoCancelacionTardia: 'If you cancel less than 24 hours in advance, it will count as a late cancellation (unless you booked it less than 1 hour ago).',
         avisoSuspensionCuenta: 'Accumulating late cancellations may suspend your account.',
         noMantener: 'No, keep it',
         siCancelar: 'Yes, cancel',

@@ -23,6 +23,9 @@ import jwt from 'jsonwebtoken';
 import { plainToInstance } from 'class-transformer';
 import { validate, ValidationError } from 'class-validator';
 import { getJwtSecret } from '../../config/security';
+import { SesionRepository } from '../../modules/usuarios/infrastructure/repositories/sesion.repository';
+
+const sesiones = new SesionRepository();
 
 // ----- Extender el tipo Request de Express para incluir jwt y dto -----
 declare global {
@@ -31,6 +34,7 @@ declare global {
             jwt?: {
                 id: number;
                 rol: 'PACIENTE' | 'ADMIN' | 'ADMISION' | 'MEDICO';
+                jti: string;   // id de la sesión (tabla `sesiones`)
             };
             dto?: any;
         }
@@ -69,12 +73,12 @@ export const authHandler = (opts: AuthHandlerOptions = {}): RequestHandler => {
 
         const token = header.split(' ')[1];
 
-        let payload: { id: number; rol: Rol };
+        let payload: { id: number; rol: Rol; jti?: string };
         try {
             payload = jwt.verify(
                 token,
                 getJwtSecret(),
-            ) as { id: number; rol: Rol };
+            ) as { id: number; rol: Rol; jti?: string };
         } catch (error) {
             return res.status(401).json({
                 ok: false,
@@ -82,10 +86,21 @@ export const authHandler = (opts: AuthHandlerOptions = {}): RequestHandler => {
             });
         }
 
+        // La sesión debe seguir activa (el logout la elimina).
+        // Los tokens emitidos antes de este cambio no traen jti: se pide volver a iniciar sesión.
+        try {
+            if (!payload.jti || !(await sesiones.estaActiva(payload.id, payload.jti))) {
+                return res.status(401).json({ ok: false, mensaje: 'Tu sesión fue cerrada o expiró. Inicia sesión nuevamente.' });
+            }
+        } catch (error) {
+            return next(error);
+        }
+
         // Adjuntar datos del JWT al request para que el controller los use
         req.jwt = {
             id: payload.id,
             rol: payload.rol,
+            jti: payload.jti,
         };
 
         // =============================================================

@@ -27,6 +27,8 @@ import pagoRoutes    from './modules/pagos/presentation/routes/pago.routes';
 import { iniciarCronRecordatorios } from './shared/cron/recordatorios.cron';
 import { errorHandler } from './shared/middlewares/error.handler';
 import { iniciarCronCorreos } from './shared/cron/correos.cron';
+import { iniciarCronSeguros } from './shared/cron/seguros.cron';
+import { iniciarCronCierreCitas } from './shared/cron/cierre-citas.cron';
 
 dotenv.config();
 
@@ -127,6 +129,8 @@ AppDataSource.initialize()
         iniciarCronRecordatorios();
         iniciarCronDisponibilidad();
         iniciarCronCorreos();
+        iniciarCronSeguros();
+        iniciarCronCierreCitas();
         app.listen(PORT, () => {
             console.log(`Servidor escuchando en http://localhost:${PORT}`);
         });

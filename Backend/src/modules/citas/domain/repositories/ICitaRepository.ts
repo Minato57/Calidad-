@@ -3,9 +3,11 @@
 // CONTRATO del repositorio de Citas.
 // =================================================================
 import { Cita } from '../entities/cita.entity';
+import { Tx } from '../../../../shared/db/transaccion';
+import { TipoNotificacion } from '../../../notificaciones/domain/entities/notificacion.entity';
 
 export interface ICitaRepository {
-    save(cita: Cita): Promise<Cita>;
+    save(cita: Cita, tx?: Tx): Promise<Cita>;
 
     findByUsuario(idUsuario: number): Promise<Cita[]>;
 
@@ -33,10 +35,11 @@ export interface ICitaRepository {
     /**
      * Cambia el estado de una cita y libera su horario.
      */
-    cancelar(idCita: number): Promise<boolean>;
+    /** Cancela si sigue activa y libera el horario. false si ya no estaba activa. */
+    cancelar(idCita: number, tx?: Tx): Promise<boolean>;
     obtenerFechaHoraDeCita(idCita: number): Promise<{ fecha: string; hora: string } | null>;
-    incrementarCancelaciones(idUsuario: number): Promise<number>;
-    bloquearPorCancelaciones(idUsuario: number): Promise<void>;
+    incrementarCancelaciones(idUsuario: number, tx?: Tx): Promise<number>;
+    bloquearPorCancelaciones(idUsuario: number, tx?: Tx): Promise<void>;
     obtenerConfig(clave: string): Promise<string | null>;
     obtenerEstadoUsuario(idUsuario: number): Promise<{
         cuenta_bloqueada: boolean;
@@ -45,6 +48,7 @@ export interface ICitaRepository {
         cancelaciones: number;
     } | null>;
     desbloquearCuenta(idUsuario: number): Promise<void>;
-    usuarioYaTieneCitaEn(idUsuario: number, fecha: string, hora: string): Promise<boolean>;
-    crearNotificacion(idUsuario: number, mensaje: string, idCita?: number | null): Promise<void>;
+    usuarioYaTieneCitaEn(idUsuario: number, fecha: string, hora: string, tx?: Tx): Promise<boolean>;
+    /** tipo por defecto: SANCION */
+    crearNotificacion(idUsuario: number, mensaje: string, idCita?: number | null, tx?: Tx, tipo?: TipoNotificacion): Promise<void>;
 }

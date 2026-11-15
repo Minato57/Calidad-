@@ -15,7 +15,6 @@ import { AdminService } from '../../application/services/admin.service';
 
 import { CancelacionMasivaDTO } from '../../application/dto/cancelacion-masiva.dto';
 import { NuevaEspecialidadDTO } from '../../application/dto/nueva-especialidad.dto';
-import { InhabilitarEspecialidadDTO } from '../../application/dto/inhabilitar-especialidad.dto';
 import { ConfigurarSancionesDTO } from '../../application/dto/configurar-sanciones.dto';
 import { CrearAdmisionDTO } from '../../application/dto/crear-admision.dto';
 import { CrearMedicoDTO } from '../../application/dto/crear-medico.dto';
@@ -44,11 +43,11 @@ export class AdminController {
         const dto = req.dto as CancelacionMasivaDTO;
         const adminId = req.jwt!.id;
 
-        const result = await this.service.cancelarMasivo(adminId, dto);
+        const { status, ...result } = await this.service.cancelarMasivo(adminId, dto) as any;
 
-        // 404 si no había citas para cancelar
+        // 400 fecha pasada · 404 si no había citas para cancelar
         if (!result.ok) {
-            return res.status(404).json(result);
+            return res.status(status ?? 400).json(result);
         }
 
         return res.status(200).json(result);
@@ -66,21 +65,6 @@ export class AdminController {
             return res.status(409).json(result);
         }
         return res.status(201).json(result);
-    };
-
-    // ============================================================
-    // PUT /admin/especialidad/inhabilitar
-    // ============================================================
-    inhabilitarEspecialidad = async (req: Request, res: Response) => {
-        const dto = req.dto as InhabilitarEspecialidadDTO;
-        const adminId = req.jwt!.id;
-
-        const result = await this.service.inhabilitarEspecialidad(adminId, dto);
-
-        if (!result.ok) {
-            return res.status(400).json(result);
-        }
-        return res.status(200).json(result);
     };
 
     // ============================================================

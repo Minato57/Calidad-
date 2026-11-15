@@ -11,7 +11,7 @@ export class ReporteService {
             completadas: citas.filter(c => c.estado === 'COMPLETADA').length,
             canceladas:  citas.filter(c => c.estado === 'CANCELADA').length,
             faltas:      citas.filter(c => c.estado === 'FALTA').length,
-            reservadas:  citas.filter(c => ['RESERVADA', 'CONFIRMADA', 'RECORDATORIO'].includes(c.estado)).length,
+            reservadas:  citas.filter(c => c.estado === 'RESERVADA').length,
         };
 
         return { citas, totales };

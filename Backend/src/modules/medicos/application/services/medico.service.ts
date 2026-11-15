@@ -3,8 +3,8 @@
 //   - Pacientes (citas) del día del médico autenticado
 //   - Registro de diagnóstico + receta, envío por correo con firma digital
 // =================================================================
-import { createHmac } from 'crypto';
 import { getJwtSecret } from '../../../../config/security';
+import { firmarAtencion, instanteDeEmision } from '../../domain/firma-receta';
 
 import { MedicoPanelRepository } from '../../infrastructure/repositories/medico-panel.repository';
 import { SeguroService } from '../../../seguros/application/services/seguro.service';
@@ -47,11 +47,6 @@ export class MedicoService {
         return { ok: true, fecha, total: enriquecidas.length, medico: perfil, citas: enriquecidas };
     }
 
-    private firmar(partes: (string | number)[]): string {
-        const secreto = getJwtSecret();
-        return createHmac('sha256', secreto).update(partes.join('|')).digest('hex').slice(0, 16).toUpperCase();
-    }
-
     async atenderCita(idUsuario: number, idCita: number, dto: AtencionDTO) {
         const perfil = await this.repo.perfilPorUsuario(idUsuario);
         if (!perfil) {
@@ -72,16 +67,18 @@ export class MedicoService {
         const receta       = dto.receta?.trim() || null;
         const indicaciones = dto.indicaciones?.trim() || null;
         const correoDestino = dto.correo_destino?.trim() || cita.correo || null;
-        const emitido      = new Date();
+        // Instante de emisión truncado a segundos: se guarda tal cual en fecha_atencion
+        // para poder recalcular la firma al verificar.
+        const emitido      = instanteDeEmision();
 
-        // Firma digital: HMAC del contenido clínico + identidad del médico.
-        const codigo = this.firmar([
-            cita.id_cita, perfil.id_medico, diagnostico, receta ?? '', indicaciones ?? '', emitido.toISOString(),
-        ]);
+        // Firma digital: HMAC del contenido clínico + identidad del médico + fecha de emisión.
+        const codigo = firmarAtencion(getJwtSecret(), {
+            id_cita: cita.id_cita, id_medico: perfil.id_medico, diagnostico, receta, indicaciones, emitido,
+        });
 
         const idAtencion = await this.repo.guardarAtencion({
             id_cita: cita.id_cita, id_medico: perfil.id_medico,
-            diagnostico, receta, indicaciones, codigo, correo: correoDestino,
+            diagnostico, receta, indicaciones, codigo, correo: correoDestino, emitido,
         });
 
         // Envío por correo (no bloquea el guardado: si falla, queda registrado como no enviado).
@@ -122,8 +119,29 @@ export class MedicoService {
         };
     }
 
+    // Verificación PÚBLICA (cualquiera con el enlace del correo): confirma que la
+    // receta existe y no fue alterada, sin exponer datos clínicos ni del paciente.
     async verificarReceta(codigo: string) {
         const data = await this.repo.verificarCodigo(codigo.toUpperCase());
-        return data ? { ok: true, valida: true, ...data } : { ok: true, valida: false };
+        if (!data) return { ok: true, valida: false };
+
+        const recalculado = firmarAtencion(getJwtSecret(), {
+            id_cita: data.id_cita, id_medico: data.id_medico,
+            diagnostico: data.diagnostico, receta: data.receta, indicaciones: data.indicaciones,
+            emitido: data.fecha_atencion,
+        });
+        const integra = recalculado === codigo.toUpperCase();
+
+        return {
+            ok: true,
+            valida: integra,
+            mensaje: integra
+                ? 'Receta auténtica emitida por el Centro de Salud San Genaro de Villa'
+                : 'El registro de esta receta fue modificado después de emitirse: no es válida',
+            medico: data.medico,
+            cmp: data.cmp,
+            especialidad: data.especialidad,
+            fecha_emision: data.fecha_atencion.toISOString(),
+        };
     }
 }

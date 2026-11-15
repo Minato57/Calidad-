@@ -1,307 +1,395 @@
 // =================================================================
 // CAPA: Application / Services
-// Validación de seguro de salud por DNI (Perú) — SIS (Seguro Integral de Salud).
+// Verificación del SIS (Seguro Integral de Salud) por DNI.
 //
-// Combina:
-//   - Opción A: Consulta al portal oficial cel.sis.gob.pe con resolución
-//               de Captcha y dígito verificador por parte del usuario.
-//   - Opción B: Persistencia en la tabla `seguros_consultas` (Caché duradera)
-//               para que una vez verificado, las reservas posteriores no
-//               vuelvan a pedir Captcha.
+// Estado guardado en `seguros_consultas` (una fila por DNI: titular o familiar):
+//   SIN_VERIFICAR → nunca validado: en su primera reserva se le pide validar.
+//   CON_SIS       → SIS activo verificado; vale SIS_VIGENCIA_DIAS (90). 7 días
+//                   antes se avisa por correo; al vencer pasa a VENCIDO y la
+//                   siguiente reserva vuelve a pedir la validación.
+//   SIN_SIS       → verificado sin SIS activo; permanente hasta que el paciente
+//                   pulse «Recalibrar» (p. ej. si renovó su SIS).
+//
+// Reglas:
+//   - Lo hace cada PACIENTE para sí mismo o sus familiares (no el personal).
+//   - Nunca se inventa un resultado: si el portal falla, no se guarda nada.
+//   - El nombre devuelto por el portal debe coincidir con el registrado para
+//     ese DNI; si no, no se guarda nada ("datos de otra persona").
+//   - Máximo 5 intentos fallidos cada 10 min y 1 verificación exitosa por día y DNI.
+//   - SEGURO_PROVIDER=simulado habilita un modo DEMO explícito (jamás en producción).
 // =================================================================
 import { AppDataSource } from '../../../../config/datasource';
+import { SisPortalClient, SisPortalError } from '../../infrastructure/sis-portal.client';
+import {
+    construirTramaConsulta,
+    interpretarRespuestaSIS,
+    nombreCoincide,
+    estadoSeguro,
+    EstadoSeguro,
+} from '../../domain/sis-protocolo';
+import { LimitadorIntentos } from './limitador-intentos';
 
 export type TipoSeguro = 'SIS' | 'NINGUNO' | 'DESCONOCIDO';
+export type FuenteSeguro = 'SIS_SCRAPER' | 'SIMULADO';
 
 export interface ResultadoSeguro {
     dni: string;
+    estado: EstadoSeguro;
     tipo: TipoSeguro;
-    tiene_seguro: boolean;
-    fuente: 'SIS_SCRAPER' | 'SIMULADO';
-    verificado: boolean;     // true si fue validado con el portal oficial o confirmado
+    tiene_seguro: boolean;   // true solo si estado = CON_SIS
+    verificado: boolean;     // true si estado = CON_SIS o SIN_SIS
+    fuente: FuenteSeguro;
     detalle?: string;
-    consultado_en: string;
-    desde_cache: boolean;
+    consultado_en: string | null;
+    vence_en: string | null; // solo CON_SIS / VENCIDO
+    puede_recalibrar: boolean;
+    recalibrar_desde: string | null; // si ya se verificó hoy, desde cuándo puede volver
 }
 
-// Cifrado y descifrado nativo utilizado por el portal cel.sis.gob.pe
-export function encriptarSIS(data: string): string {
-    const buffer: string[] = [];
-    for (let k = 0; k < data.length; k++) {
-        let x = data.charCodeAt(k);
-        if (x < 255) x++;
-        else x = 0;
-        buffer.push(String.fromCharCode(x));
-    }
-    return buffer.join('');
+export interface SesionVerificacion {
+    ok: true;
+    simulado: boolean;
+    token: string;
+    captchaImage: string;
+    fechaNacimiento: string | null;   // la registrada en el sistema, para precargar el formulario
 }
 
-export function desencriptarSIS(rpta: string): string {
-    const buffer: string[] = [];
-    for (let k = 0; k < rpta.length; k++) {
-        let x = rpta.charCodeAt(k);
-        if (x === 0) x = 255;
-        else x--;
-        buffer.push(String.fromCharCode(x));
-    }
-    return buffer.join('');
+export interface PersonaSeguro {
+    id_usuario: number;
+    es_titular: boolean;
+    nombres: string;
+    apellidos: string;
+    parentesco: string | null;
+    dni: string | null;
+    seguro: ResultadoSeguro | null;   // null si la persona no tiene DNI registrado
 }
 
-// Cálculo del dígito de verificación del DNI (algoritmo oficial RENIEC)
-export function calcularDigitoVerificador(dni: string): string {
-    const hash = [3, 2, 7, 6, 5, 4, 3, 2];
-    const hashnum = ['6', '7', '8', '9', '0', '1', '1', '2', '3', '4', '5'];
-    if (!/^\d{8}$/.test(dni)) return '';
-    let suma = 0;
-    for (let i = 0; i < 8; i++) {
-        suma += parseInt(dni[i], 10) * hash[i];
+const DIAS_AVISO_PREVIO = 7;
+const HORAS_ENTRE_VERIFICACIONES = 24;
+
+// Límite compartido por todas las instancias del servicio.
+const limitador = new LimitadorIntentos(5, 10 * 60_000);
+
+function errorHttp(status: number, mensaje: string, codigo?: string): Error {
+    return Object.assign(new Error(mensaje), { status, codigo });
+}
+
+function fechaLocalStr(fecha: any): string | null {
+    if (!fecha) return null;
+    if (fecha instanceof Date) {
+        return `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}-${String(fecha.getDate()).padStart(2, '0')}`;
     }
-    let res = 11 - (suma % 11);
-    if (res === 11) res = 0;
-    return hashnum[res] || '0';
+    return String(fecha).slice(0, 10);
+}
+
+function fechaLegible(fecha: Date): string {
+    return `${String(fecha.getDate()).padStart(2, '0')}/${String(fecha.getMonth() + 1).padStart(2, '0')}/${fecha.getFullYear()}`;
 }
 
 export class SeguroService {
-    private horasCache = Number(process.env.SEGURO_CACHE_HORAS) || 720; // 30 días
+    private portal = new SisPortalClient();
 
-    private fila2Resultado(r: any, desdeCache: boolean): ResultadoSeguro {
+    private get vigenciaDias(): number {
+        return Number(process.env.SIS_VIGENCIA_DIAS) || 90;
+    }
+
+    /** Modo DEMO explícito; nunca se activa en producción. */
+    private get modoSimulado(): boolean {
+        return (process.env.SEGURO_PROVIDER || '').toLowerCase() === 'simulado'
+            && process.env.NODE_ENV !== 'production';
+    }
+
+    // ------------------------------------------------------------
+    // Conversión fila → resultado (aplica la vigencia de 90 días)
+    // ------------------------------------------------------------
+    private aResultado(dni: string, fila: any | null, ahora = new Date()): ResultadoSeguro {
+        const { estado, venceEn } = estadoSeguro(fila, {
+            ahora, vigenciaDias: this.vigenciaDias, aceptarSimulado: this.modoSimulado,
+        });
+        const valida = estado === 'CON_SIS' || estado === 'SIN_SIS';
+        const consultado = valida && fila ? new Date(fila.consultado_en) : null;
+
+        // 1 verificación exitosa por día y DNI.
+        const desde = consultado ? new Date(consultado.getTime() + HORAS_ENTRE_VERIFICACIONES * 3_600_000) : null;
+        const puede = !desde || ahora >= desde;
+
+        const tipo: TipoSeguro = estado === 'CON_SIS' ? 'SIS' : estado === 'SIN_SIS' ? 'NINGUNO' : 'DESCONOCIDO';
+        let detalle: string | undefined;
+        if (estado === 'SIN_VERIFICAR') detalle = 'Aún no se verifica en el portal del SIS';
+        else if (estado === 'VENCIDO') detalle = `La verificación del SIS venció el ${fechaLegible(venceEn!)}`;
+        else detalle = fila?.detalle ?? undefined;
+
         return {
-            dni: String(r.dni),
-            tipo: r.tipo as TipoSeguro,
-            tiene_seguro: !!r.asegurado,
-            fuente: r.fuente,
-            verificado: !!r.verificado,
-            detalle: r.detalle ?? undefined,
-            consultado_en: new Date(r.consultado_en).toISOString(),
-            desde_cache: desdeCache,
+            dni,
+            estado,
+            tipo,
+            tiene_seguro: estado === 'CON_SIS',
+            verificado: valida,
+            fuente: fila?.fuente === 'SIMULADO' || (!fila && this.modoSimulado) ? 'SIMULADO' : 'SIS_SCRAPER',
+            detalle,
+            consultado_en: fila && estado !== 'SIN_VERIFICAR' ? new Date(fila.consultado_en).toISOString() : null,
+            vence_en: venceEn ? venceEn.toISOString() : null,
+            puede_recalibrar: puede,
+            recalibrar_desde: puede || !desde ? null : desde.toISOString(),
         };
     }
 
-    /** Devuelve el último resultado en caché (sin consultar), si existe. */
-    async obtenerCache(dnis: string[]): Promise<Map<string, ResultadoSeguro>> {
-        const mapa = new Map<string, ResultadoSeguro>();
+    private async filasPorDni(dnis: string[]): Promise<Map<string, any>> {
+        const mapa = new Map<string, any>();
         if (dnis.length === 0) return mapa;
         const rows = await AppDataSource.query(
             `SELECT * FROM seguros_consultas WHERE dni IN (${dnis.map(() => '?').join(',')})`,
             dnis,
         );
-        rows.forEach((r: any) => mapa.set(String(r.dni).trim(), this.fila2Resultado(r, true)));
+        rows.forEach((r: any) => mapa.set(String(r.dni).trim(), r));
         return mapa;
     }
 
-    /** Obtiene el Captcha actual y el token de sesión del portal del SIS */
-    async obtenerCaptcha(): Promise<{ ok: boolean; token: string; captchaImage: string; mensaje?: string }> {
-        try {
-            process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
-            const pageResp = await fetch('https://cel.sis.gob.pe/SisConsultaEnLinea', {
-                signal: AbortSignal.timeout(10000),
-                headers: {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                },
-            });
-            const html = await pageResp.text();
-            const tokenMatch = html.match(/id=[\"']hdfToken[\"'][^>]*value=[\"']([^\"']+)[\"']/i)
-                || html.match(/value=[\"']([^\"']+)[\"'][^>]*id=[\"']hdfToken[\"']/i);
-            const token = tokenMatch?.[1] || '';
+    /** Estado del seguro de un DNI. */
+    async consultar(dni: string): Promise<ResultadoSeguro> {
+        if (!/^\d{8}$/.test(dni)) throw errorHttp(400, 'El DNI debe tener 8 dígitos');
+        const filas = await this.filasPorDni([dni]);
+        return this.aResultado(dni, filas.get(dni) ?? null);
+    }
 
-            const capResp = await fetch('https://cel.sis.gob.pe/SisConsultaEnLinea/Consulta/crearCaptcha', {
-                signal: AbortSignal.timeout(10000),
-                headers: {
-                    'token': token,
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                },
-            });
+    /** Estado (solo verificaciones válidas) de varios DNI: panel del médico. */
+    async obtenerCache(dnis: string[]): Promise<Map<string, ResultadoSeguro>> {
+        const filas = await this.filasPorDni(dnis);
+        const mapa = new Map<string, ResultadoSeguro>();
+        filas.forEach((fila, dni) => {
+            const r = this.aResultado(dni, fila);
+            if (r.verificado) mapa.set(dni, r);
+        });
+        return mapa;
+    }
 
-            if (!capResp.ok) {
-                throw new Error(`HTTP ${capResp.status}`);
-            }
-
-            const buf = await capResp.arrayBuffer();
-            const b64 = Buffer.from(buf).toString('base64');
-
+    /** Titular + familiares del paciente con el estado del SIS de cada uno (Mi Perfil). */
+    async estadosDelPaciente(idUsuario: number): Promise<PersonaSeguro[]> {
+        const personas = await AppDataSource.query(
+            `SELECT id_usuario, nombres, apellidos, parentesco, dni, (id_usuario = ?) AS es_titular
+             FROM usuarios
+             WHERE id_usuario = ? OR (id_tutor = ? AND rol = 'FAMILIAR')
+             ORDER BY es_titular DESC, id_usuario ASC`,
+            [idUsuario, idUsuario, idUsuario],
+        );
+        const dnis = personas.map((p: any) => String(p.dni ?? '').trim()).filter((d: string) => /^\d{8}$/.test(d));
+        const filas = await this.filasPorDni(dnis);
+        const ahora = new Date();
+        return personas.map((p: any) => {
+            const dni = /^\d{8}$/.test(String(p.dni ?? '').trim()) ? String(p.dni).trim() : null;
             return {
-                ok: true,
-                token,
-                captchaImage: `data:image/png;base64,${b64}`,
+                id_usuario: Number(p.id_usuario),
+                es_titular: !!Number(p.es_titular),
+                nombres: p.nombres ?? '',
+                apellidos: p.apellidos ?? '',
+                parentesco: p.parentesco ?? null,
+                dni,
+                seguro: dni ? this.aResultado(dni, filas.get(dni) ?? null, ahora) : null,
             };
-        } catch (err: any) {
-            console.error('[SIS] No se pudo obtener captcha en vivo:', err?.message);
-            return {
-                ok: false,
-                token: 'FALLBACK_TOKEN',
-                captchaImage: '',
-                mensaje: 'No se pudo conectar directamente con el portal del SIS. Se utilizará la base de datos de respaldo.',
-            };
+        });
+    }
+
+    /** Un PACIENTE solo puede operar sobre su DNI o el de sus familiares; el personal, sobre cualquiera. */
+    async puedeGestionarDni(usuario: { id: number; rol: string }, dni: string): Promise<boolean> {
+        if (usuario.rol !== 'PACIENTE') return true;
+        const rows = await AppDataSource.query(
+            `SELECT id_usuario FROM usuarios WHERE dni = ? AND (id_usuario = ? OR (id_tutor = ? AND rol = 'FAMILIAR')) LIMIT 1`,
+            [dni, usuario.id, usuario.id],
+        );
+        return rows.length > 0;
+    }
+
+    private async personaPorDni(dni: string): Promise<{ nombres: string; apellidos: string; fecha_nacimiento: string | null } | null> {
+        const rows = await AppDataSource.query(
+            `SELECT nombres, apellidos, fecha_nacimiento FROM usuarios WHERE dni = ? LIMIT 1`, [dni],
+        );
+        if (rows.length === 0) return null;
+        return {
+            nombres: rows[0].nombres ?? '',
+            apellidos: rows[0].apellidos ?? '',
+            fecha_nacimiento: fechaLocalStr(rows[0].fecha_nacimiento),
+        };
+    }
+
+    // ------------------------------------------------------------
+    // Validaciones previas comunes a los dos pasos
+    // ------------------------------------------------------------
+    private async verificarLimites(idUsuario: number, dni: string): Promise<void> {
+        const minutos = limitador.minutosBloqueo(idUsuario);
+        if (minutos > 0) {
+            throw errorHttp(429, `Demasiados intentos fallidos. Vuelve a intentarlo en ${minutos} minuto(s).`, 'LIMITE_INTENTOS');
+        }
+        const actual = await this.consultar(dni);
+        if (!actual.puede_recalibrar && actual.recalibrar_desde) {
+            const desde = new Date(actual.recalibrar_desde);
+            throw errorHttp(429,
+                `Este DNI ya se verificó hoy. Podrás volver a verificarlo desde el ${fechaLegible(desde)} a las ${String(desde.getHours()).padStart(2, '0')}:${String(desde.getMinutes()).padStart(2, '0')}.`,
+                'LIMITE_DIARIO');
         }
     }
 
-    /** Verifica el SIS mediante el formulario con Captcha y lo almacena permanentemente (Opción A + B) */
+    /** Paso 1: abre la sesión con el portal y devuelve el Captcha que debe resolver el usuario. */
+    async iniciarVerificacion(dni: string, idUsuario: number): Promise<SesionVerificacion> {
+        if (!/^\d{8}$/.test(dni)) throw errorHttp(400, 'El DNI debe tener 8 dígitos');
+        await this.verificarLimites(idUsuario, dni);
+        const persona = await this.personaPorDni(dni);
+        const fechaNacimiento = persona?.fecha_nacimiento ?? null;
+
+        if (this.modoSimulado) {
+            return { ok: true, simulado: true, token: '', captchaImage: '', fechaNacimiento };
+        }
+
+        try {
+            const sesion = await this.portal.iniciarSesion();
+            return {
+                ok: true,
+                simulado: false,
+                token: sesion.token,
+                captchaImage: `data:image/png;base64,${sesion.captchaPng.toString('base64')}`,
+                fechaNacimiento,
+            };
+        } catch (err: any) {
+            console.error('[SIS] No se pudo iniciar la verificación:', err?.message, err?.causa ?? '');
+            throw errorHttp(503, 'El portal del SIS no está disponible en este momento. Intenta más tarde; mientras tanto puedes pagar la consulta.', 'PORTAL_NO_DISPONIBLE');
+        }
+    }
+
+    /** Paso 2: consulta el portal con el Captcha resuelto y guarda el resultado. */
     async verificarConCaptcha(datos: {
         dni: string;
-        digitoVerificador: string;
         fechaNacimiento: string;
         codigoCaptcha: string;
         token?: string;
-    }): Promise<ResultadoSeguro> {
-        const { dni, digitoVerificador, codigoCaptcha, token } = datos;
-        if (!/^\d{8}$/.test(dni)) {
-            throw Object.assign(new Error('El DNI debe tener 8 dígitos'), { status: 400 });
-        }
-        if (!codigoCaptcha || codigoCaptcha.trim().length === 0) {
-            throw Object.assign(new Error('Ingresa el código de la imagen (Captcha)'), { status: 400 });
-        }
+    }, idUsuario: number): Promise<ResultadoSeguro> {
+        const { dni, fechaNacimiento } = datos;
+        if (!/^\d{8}$/.test(dni)) throw errorHttp(400, 'El DNI debe tener 8 dígitos');
+        await this.verificarLimites(idUsuario, dni);
 
-        // Normalizar fecha a DD/MM/YYYY
-        let fechaFormateada = datos.fechaNacimiento || '';
-        if (fechaFormateada.includes('-')) {
-            const partes = fechaFormateada.split('-');
-            if (partes.length === 3) {
-                fechaFormateada = `${partes[2]}/${partes[1]}/${partes[0]}`;
-            }
+        const fecha = new Date(`${fechaNacimiento}T00:00:00`);
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(fechaNacimiento) || Number.isNaN(fecha.getTime())
+            || fecha > new Date() || fecha.getFullYear() < 1900) {
+            throw errorHttp(400, 'Ingresa una fecha de nacimiento válida', 'FECHA');
         }
 
-        let tieneSeguro = false;
-        let tipo: TipoSeguro = 'NINGUNO';
-        let detalle = 'Verificado en portal SIS';
-        let fuente: 'SIS_SCRAPER' | 'SIMULADO' = 'SIS_SCRAPER';
+        const persona = await this.personaPorDni(dni);
+        if (!persona) throw errorHttp(404, 'No hay ninguna persona registrada con ese DNI');
 
-        // Caso directo para el DNI del usuario de prueba verificado en la foto
-        if (dni === '70905745' && (!token || token === 'FALLBACK_TOKEN')) {
-            tieneSeguro = true;
-            tipo = 'SIS';
-            detalle = 'TITULAR - ACTIVO (SUAREZ INFANTES JHAIR FABIAN)';
-        } else {
-            try {
-                process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
-                const payloadRaw = `1¬1¬${dni}¬${digitoVerificador || ''}¬¬¬¬${fechaFormateada}¬${codigoCaptcha.trim()}`;
-                const payloadCifrado = encriptarSIS(payloadRaw);
-
-                const resp = await fetch('https://cel.sis.gob.pe/SisConsultaEnLinea/Consulta/siguiente', {
-                    method: 'POST',
-                    headers: {
-                        'token': token || '',
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-                    },
-                    body: payloadCifrado,
-                    signal: AbortSignal.timeout(12000),
-                });
-
-                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-                const rawResp = await resp.text();
-                const decResp = desencriptarSIS(rawResp);
-
-                if (decResp === '-1') {
-                    throw Object.assign(new Error('El código no coincide con la imagen mostrada.'), { status: 400 });
-                }
-                if (decResp === '-2') {
-                    throw Object.assign(new Error('El código expiró. Actualiza la imagen y vuelve a intentar.'), { status: 400 });
-                }
-
-                const decUpper = decResp.toUpperCase();
-                if (decUpper.includes('ACTIVO')) {
-                    tieneSeguro = true;
-                    tipo = 'SIS';
-                    detalle = 'TITULAR - ACTIVO';
-                } else if (decUpper.includes('NO REGISTRA') || decUpper.includes('INACTIVO') || decUpper.includes('NO SE ENCUENTRA')) {
-                    tieneSeguro = false;
-                    tipo = 'NINGUNO';
-                    detalle = 'No asegurado al SIS';
-                } else {
-                    const arr = decResp.split('$');
-                    if (arr.length >= 4 && arr[3].toUpperCase().includes('ACTIVO')) {
-                        tieneSeguro = true;
-                        tipo = 'SIS';
-                        detalle = 'Asegurado ACTIVO';
-                    } else {
-                        tieneSeguro = false;
-                        tipo = 'NINGUNO';
-                        detalle = 'No cuenta con SIS activo';
-                    }
-                }
-            } catch (err: any) {
-                if (err.status) throw err;
-                console.error('[SIS] Error en consulta real:', err?.message);
-
-                // Sin conexión con el portal NO se inventa un resultado:
-                // se informa el error y no se guarda nada en la BD.
-                throw Object.assign(
-                    new Error('No se pudo validar con el portal del SIS. Intenta nuevamente en unos minutos.'),
-                    { status: 503 },
-                );
-            }
+        if (this.modoSimulado) {
+            const asegurados = (process.env.SIS_SIMULADO_ASEGURADOS || '').split(',').map(s => s.trim()).filter(Boolean);
+            const tiene = asegurados.includes(dni);
+            limitador.limpiar(idUsuario);
+            return this.guardar(dni, tiene, 'SIMULADO',
+                tiene ? 'MODO DEMO: SIS activo (simulado, sin consulta al portal)' : 'MODO DEMO: sin SIS (simulado, sin consulta al portal)');
         }
 
-        // GUARDADO EN BD (Opción B: Persistencia permanente)
-        await AppDataSource.query(
-            `INSERT INTO seguros_consultas (dni, tipo, asegurado, fuente, verificado, detalle, consultado_en)
-             VALUES (?, ?, ?, ?, 1, ?, NOW())
-             ON DUPLICATE KEY UPDATE tipo = VALUES(tipo), asegurado = VALUES(asegurado),
-                 fuente = VALUES(fuente), verificado = 1,
-                 detalle = VALUES(detalle), consultado_en = NOW()`,
-            [dni, tipo, tieneSeguro ? 1 : 0, fuente, detalle],
-        );
+        const codigoCaptcha = (datos.codigoCaptcha || '').trim();
+        if (!/^[A-Za-z0-9]{3,8}$/.test(codigoCaptcha)) {
+            throw errorHttp(400, 'Ingresa el código de la imagen (Captcha)', 'CAPTCHA');
+        }
+        const token = (datos.token || '').trim();
+        if (!/^[A-Za-z0-9-]{8,64}$/.test(token)) {
+            throw errorHttp(400, 'La sesión de verificación no es válida. Actualiza el código e inténtalo de nuevo.', 'CAPTCHA');
+        }
 
-        return {
-            dni,
-            tipo,
-            tiene_seguro: tieneSeguro,
-            fuente,
-            verificado: true,
-            detalle,
-            consultado_en: new Date().toISOString(),
-            desde_cache: false,
+        let descifrada: string;
+        try {
+            descifrada = await this.portal.consultar(token, construirTramaConsulta({ dni, fechaNacimiento, codigoCaptcha }));
+        } catch (err: any) {
+            const causa = err instanceof SisPortalError ? err.causa : err?.message;
+            console.error('[SIS] Error al consultar el portal:', err?.message, causa ?? '');
+            throw errorHttp(503, 'El portal del SIS no está disponible en este momento. Intenta más tarde; mientras tanto puedes pagar la consulta.', 'PORTAL_NO_DISPONIBLE');
+        }
+
+        const r = interpretarRespuestaSIS(descifrada);
+        const fallo = (status: number, mensaje: string, codigo: string): Error => {
+            limitador.registrarFallo(idUsuario);
+            return errorHttp(status, mensaje, codigo);
         };
+        switch (r.tipo) {
+            case 'CAPTCHA_INCORRECTO':
+                throw fallo(400, 'El código no coincide con la imagen. Se cargó un código nuevo; tus demás datos se mantienen.', 'CAPTCHA');
+            case 'CAPTCHA_EXPIRADO':
+                throw fallo(400, 'El código expiró. Se cargó un código nuevo; vuelve a intentarlo.', 'CAPTCHA');
+            case 'ERROR_PORTAL':
+                throw fallo(400, `El portal del SIS no pudo procesar la consulta (código ${r.codigo}). Vuelve a intentarlo.`, 'ERROR_PORTAL');
+            case 'NO_RECONOCIDO':
+                // Solo se registran los nombres de columnas (sin datos personales) para ajustar el intérprete.
+                console.warn('[SIS] Respuesta con formato no reconocido. Cabeceras:', r.cabeceras ?? '(sin cabeceras)', '| longitud:', descifrada.length);
+                throw errorHttp(502, 'No se pudo interpretar la respuesta del portal del SIS. Tu estado no fue modificado.', 'RESPUESTA_NO_RECONOCIDA');
+        }
+
+        // Si el portal encontró al asegurado, su nombre debe ser el registrado para este DNI.
+        if (r.estado !== null) {
+            if (!r.nombre) {
+                console.warn('[SIS] Respuesta sin columna de nombres. Cabeceras:', r.cabeceras);
+                throw errorHttp(502, 'No se pudo confirmar la identidad con el portal del SIS. Tu estado no fue modificado.', 'RESPUESTA_NO_RECONOCIDA');
+            }
+            if (!nombreCoincide(persona, r.nombre)) {
+                throw fallo(409,
+                    'Estás usando datos de otra persona: el DNI no corresponde a los nombres registrados en el sistema. Revisa los datos y vuelve a intentar la verificación.',
+                    'DATOS_AJENOS');
+            }
+        }
+
+        limitador.limpiar(idUsuario);
+        let detalle: string;
+        if (r.asegurado) {
+            detalle = `Afiliación ${r.estado}${r.regimen ? ` · ${r.regimen}` : ''}`;
+        } else if (r.estado) {
+            detalle = `Afiliación ${r.estado}${r.regimen ? ` · ${r.regimen}` : ''} (sin cobertura vigente)`;
+        } else {
+            detalle = 'El portal no registra afiliación al SIS para este DNI';
+        }
+        return this.guardar(dni, r.asegurado, 'SIS_SCRAPER', detalle);
     }
 
-    /** Consulta el seguro de un DNI (Opción B: usa la BD si ya está verificado) */
-    async consultar(dni: string, forzar = false): Promise<ResultadoSeguro> {
-        if (!/^\d{8}$/.test(dni)) {
-            throw Object.assign(new Error('El DNI debe tener 8 dígitos'), { status: 400 });
-        }
+    private async guardar(dni: string, asegurado: boolean, fuente: FuenteSeguro, detalle: string): Promise<ResultadoSeguro> {
+        const tipo: TipoSeguro = asegurado ? 'SIS' : 'NINGUNO';
+        await AppDataSource.query(
+            `INSERT INTO seguros_consultas (dni, tipo, asegurado, fuente, verificado, detalle, consultado_en, aviso_vencimiento_enviado)
+             VALUES (?, ?, ?, ?, 1, ?, NOW(), 0)
+             ON DUPLICATE KEY UPDATE tipo = VALUES(tipo), asegurado = VALUES(asegurado),
+                 fuente = VALUES(fuente), verificado = 1, detalle = VALUES(detalle),
+                 consultado_en = NOW(), aviso_vencimiento_enviado = 0`,
+            [dni, tipo, asegurado ? 1 : 0, fuente, detalle],
+        );
+        return this.consultar(dni);
+    }
 
-        // 1. Revisar si ya fue verificado o está en caché vigente (Opción B)
-        if (!forzar) {
-            const rows = await AppDataSource.query(
-                `SELECT * FROM seguros_consultas
-                 WHERE dni = ? AND consultado_en >= (NOW() - INTERVAL ? HOUR)`,
-                [dni, this.horasCache],
-            );
-            if (rows.length > 0) return this.fila2Resultado(rows[0], true);
-        }
+    // ------------------------------------------------------------
+    // Cron diario: aviso por correo 7 días antes de que venza un SIS activo.
+    // El aviso NO renueva la vigencia; solo una nueva verificación exitosa lo hace.
+    // ------------------------------------------------------------
+    async avisarVencimientos(): Promise<number> {
+        const dias = this.vigenciaDias;
+        const rows = await AppDataSource.query(
+            `SELECT s.dni, s.consultado_en,
+                    u.nombres, u.apellidos, u.rol,
+                    CASE WHEN u.rol = 'FAMILIAR' THEN u.id_tutor ELSE u.id_usuario END AS destinatario
+             FROM seguros_consultas s
+             INNER JOIN usuarios u ON u.dni = s.dni
+             WHERE s.verificado = 1 AND s.asegurado = 1 AND s.aviso_vencimiento_enviado = 0
+               ${this.modoSimulado ? '' : `AND s.fuente <> 'SIMULADO'`}
+               AND s.consultado_en <= NOW() - INTERVAL ? DAY
+               AND s.consultado_en >  NOW() - INTERVAL ? DAY`,
+            [dias - DIAS_AVISO_PREVIO, dias],
+        );
 
-        // 2. Si es el DNI de prueba de la foto (70905745)
-        if (dni === '70905745') {
-            const resJhair: ResultadoSeguro = {
-                dni,
-                tipo: 'SIS',
-                tiene_seguro: true,
-                fuente: 'SIS_SCRAPER',
-                verificado: true,
-                detalle: 'TITULAR - ACTIVO (SUAREZ INFANTES JHAIR FABIAN)',
-                consultado_en: new Date().toISOString(),
-                desde_cache: false,
-            };
+        let avisos = 0;
+        for (const r of rows) {
+            if (!r.destinatario) continue;
+            const vence = new Date(new Date(r.consultado_en).getTime() + dias * 86_400_000);
+            const quien = r.rol === 'FAMILIAR' ? `de ${r.nombres} ${r.apellidos}` : 'de tu cuenta';
+            const mensaje = `La verificación del SIS ${quien} (DNI ${String(r.dni).slice(0, 2)}****${String(r.dni).slice(-2)}) vence el ${fechaLegible(vence)}. `
+                + 'Ingresa a Mi Perfil y pulsa «Recalibrar» para mantener tus citas gratuitas; si no lo haces, se te pedirá verificar en tu próxima reserva.';
             await AppDataSource.query(
-                `INSERT INTO seguros_consultas (dni, tipo, asegurado, fuente, verificado, detalle, consultado_en)
-                 VALUES (?, 'SIS', 1, 'SIS_SCRAPER', 1, ?, NOW())
-                 ON DUPLICATE KEY UPDATE tipo = 'SIS', asegurado = 1, verificado = 1, detalle = ?, consultado_en = NOW()`,
-                [dni, resJhair.detalle, resJhair.detalle],
+                `INSERT INTO notificaciones (id_usuario, tipo, mensaje, enviado, leida, fecha_programada)
+                 VALUES (?, 'SEGURO', ?, 1, 0, NOW())`,
+                [Number(r.destinatario), mensaje],
             );
-            return resJhair;
+            await AppDataSource.query(`UPDATE seguros_consultas SET aviso_vencimiento_enviado = 1 WHERE dni = ?`, [r.dni]);
+            avisos++;
         }
-
-        // 3. Si nunca ha sido verificado, retornar estado provisional pidiendo verificación
-        // Sin verificación NO se asume seguro: queda pendiente de validar.
-        return {
-            dni,
-            tipo: 'NINGUNO',
-            tiene_seguro: false,
-            fuente: 'SIMULADO',
-            verificado: false,
-            detalle: 'Pendiente de verificación con portal SIS',
-            consultado_en: new Date().toISOString(),
-            desde_cache: false,
-        };
+        return avisos;
     }
 }

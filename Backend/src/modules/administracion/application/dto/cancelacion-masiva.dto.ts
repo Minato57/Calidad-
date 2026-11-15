@@ -8,12 +8,14 @@ import {
     IsNotEmpty,
     IsPositive,
     IsString,
+    Matches,
     MaxLength,
 } from 'class-validator';
 
 export class CancelacionMasivaDTO {
     @IsNotEmpty({ message: 'La fecha es obligatoria' })
     @IsDateString({}, { message: 'La fecha debe tener formato YYYY-MM-DD' })
+    @Matches(/^\d{4}-\d{2}-\d{2}$/, { message: 'La fecha debe tener formato YYYY-MM-DD' })
     fecha!: string;
 
     @IsNotEmpty({ message: 'El id_especialidad es obligatorio' })

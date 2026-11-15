@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { ReporteService } from '../../application/services/reporte.service';
 
-const ESTADOS_VALIDOS = ['RESERVADA', 'CONFIRMADA', 'RECORDATORIO', 'COMPLETADA', 'CANCELADA', 'FALTA'];
+const ESTADOS_VALIDOS = ['RESERVADA', 'COMPLETADA', 'CANCELADA', 'FALTA'];
 const RE_FECHA = /^\d{4}-\d{2}-\d{2}$/;
 
 export class ReporteController {

@@ -29,6 +29,12 @@ export class TokenBuilder {
         return this;
     }
 
+    // Identificador de la sesión (tabla `sesiones`): permite revocar el token en el logout
+    conSesion(jti: string): TokenBuilder {
+        this.payload.jti = jti;
+        return this;
+    }
+
     conExpiracion(tiempo: string): TokenBuilder {
         this.expiracion = tiempo;
         return this;

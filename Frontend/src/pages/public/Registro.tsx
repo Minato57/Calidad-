@@ -9,6 +9,7 @@ import { authApi, RegistroPayload } from '../../api/authApi';
 import { Boton } from '../../components/common/Boton';
 import { Input } from '../../components/common/Input';
 import { useTranslation } from '../../i18n';
+import { hoyLocal } from '../../utils/formatters';
 
 export const Registro = () => {
     const navigate = useNavigate();
@@ -50,6 +51,10 @@ export const Registro = () => {
         }
         if (form.dni.length !== 8) {
             setError('El DNI debe tener 8 dígitos');
+            return;
+        }
+        if (!form.fecha_nacimiento) {
+            setError('La fecha de nacimiento es obligatoria');
             return;
         }
 
@@ -163,6 +168,9 @@ export const Registro = () => {
                                 type="date"
                                 value={form.fecha_nacimiento}
                                 onChange={(e) => actualizar('fecha_nacimiento', e.target.value)}
+                                min="1900-01-01"
+                                max={hoyLocal()}
+                                required
                             />
                         </div>
 

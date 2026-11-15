@@ -11,13 +11,33 @@ import { BadgeEstadoCita } from '../../components/common/Badge';
 import { useTranslation } from '../../i18n';
 import { admisionApi } from '../../api/admisionApi';
 import { CitaDelDia } from '../../types';
-import { formatearFecha, formatearHora, obtenerIniciales } from '../../utils/formatters';
+import { formatearFecha, formatearHora, obtenerIniciales, citaYaInicio } from '../../utils/formatters';
+import { mensajeErrorApi } from '../../utils/errores';
 
 const POR_PAGINA = 8;
 
+const fechaLocal = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const fechaLocalHoy = () => fechaLocal(new Date());
+const fechaLocalAyer = () => { const d = new Date(); d.setDate(d.getDate() - 1); return fechaLocal(d); };
+
+// Mismas reglas que el backend (reglas-asistencia.ts):
+//  - "Asistió": desde el día de la cita (puede llegar temprano), nunca un día futuro.
+//  - "Falta": solo cuando la hora de la cita ya llegó.
+//  - Una FALTA se puede corregir a "Asistió" el mismo día o el siguiente.
+const accionesDe = (c: CitaDelDia) => {
+    const pendiente = c.cita.estado === 'RESERVADA';
+    return {
+        asistio:  pendiente && c.fecha <= fechaLocalHoy(),
+        falta:    pendiente && citaYaInicio(c.fecha, c.hora),
+        corregir: c.cita.estado === 'FALTA' && c.fecha >= fechaLocalAyer(),
+    };
+};
+
 export const CitasHoy = () => {
     const { t } = useTranslation();
-    const hoy = new Date().toISOString().slice(0, 10);
+    // Fecha LOCAL (toISOString usa UTC: después de las 7 pm en Perú mostraría mañana)
+    const hoy = fechaLocalHoy();
     const [fecha, setFecha]       = useState(hoy);
     const [citas, setCitas]       = useState<CitaDelDia[]>([]);
     const [cargando, setCargando] = useState(true);
@@ -51,21 +71,40 @@ export const CitasHoy = () => {
             const res = await admisionApi.marcarAsistio(idCita);
             if (res.ok) await cargar(fecha);
             else alert(res.mensaje);
-        } catch {
-            alert('No se pudo marcar la asistencia');
+        } catch (err) {
+            alert(mensajeErrorApi(err, 'No se pudo marcar la asistencia'));
+            await cargar(fecha);
         } finally {
             setProcesando(null);
         }
     };
 
     const handleFalta = async (idCita: number) => {
+        if (!window.confirm('¿Registrar la inasistencia? Se sumará una falta al paciente y podría suspenderse su cuenta.')) return;
         setProcesando(idCita);
         try {
             const res = await admisionApi.marcarFalta(idCita);
             if (res.ok) await cargar(fecha);
             else alert(res.mensaje);
-        } catch {
-            alert('No se pudo marcar la falta');
+        } catch (err) {
+            alert(mensajeErrorApi(err, 'No se pudo marcar la falta'));
+            await cargar(fecha);
+        } finally {
+            setProcesando(null);
+        }
+    };
+
+    // Corrige una falta marcada por error (mismo día o siguiente): se retira la sanción
+    const handleCorregir = async (idCita: number) => {
+        if (!window.confirm('¿Corregir a "Asistió"? Se retirará la inasistencia y, si la cuenta se suspendió solo por faltas, se reactivará.')) return;
+        setProcesando(idCita);
+        try {
+            const res = await admisionApi.marcarAsistio(idCita);
+            alert(res.mensaje);
+            await cargar(fecha);
+        } catch (err) {
+            alert(mensajeErrorApi(err, 'No se pudo corregir la falta'));
+            await cargar(fecha);
         } finally {
             setProcesando(null);
         }
@@ -92,7 +131,7 @@ export const CitasHoy = () => {
     // Contadores rápidos (sobre lo filtrado, para que cuadren con lo que se ve)
     const asistieron = filtradas.filter(c => c.cita.estado === 'COMPLETADA').length;
     const faltaron   = filtradas.filter(c => c.cita.estado === 'FALTA').length;
-    const pendientes = filtradas.filter(c => ['RESERVADA','CONFIRMADA','RECORDATORIO'].includes(c.cita.estado)).length;
+    const pendientes = filtradas.filter(c => c.cita.estado === 'RESERVADA').length;
 
     return (
         <div className="min-h-screen bg-smoke">
@@ -148,7 +187,7 @@ export const CitasHoy = () => {
                 ) : (
                     <div className="space-y-3">
                         {visibles.map(c => {
-                            const esPendiente = ['RESERVADA','CONFIRMADA','RECORDATORIO'].includes(c.cita.estado);
+                            const acciones = accionesDe(c);
                             return (
                                 <Card
                                     key={c.cita.id_cita}
@@ -187,27 +226,44 @@ export const CitasHoy = () => {
                                         </div>
 
                                         {/* Acciones */}
-                                        <div className="flex gap-2">
-                                            {esPendiente ? (
-                                                <>
-                                                    <Boton
-                                                        tamano="sm"
-                                                        variante="success"
-                                                        disabled={procesando === c.cita.id_cita}
-                                                        onClick={() => handleAsistio(c.cita.id_cita)}
-                                                    >
-                                                        ✓ Asistió
-                                                    </Boton>
-                                                    <Boton
-                                                        tamano="sm"
-                                                        variante="danger"
-                                                        disabled={procesando === c.cita.id_cita}
-                                                        onClick={() => handleFalta(c.cita.id_cita)}
-                                                    >
-                                                        ✗ Falta
-                                                    </Boton>
-                                                </>
-                                            ) : (
+                                        <div className="flex gap-2 items-center">
+                                            {acciones.asistio && (
+                                                <Boton
+                                                    tamano="sm"
+                                                    variante="success"
+                                                    disabled={procesando === c.cita.id_cita}
+                                                    onClick={() => handleAsistio(c.cita.id_cita)}
+                                                >
+                                                    ✓ Asistió
+                                                </Boton>
+                                            )}
+                                            {acciones.falta && (
+                                                <Boton
+                                                    tamano="sm"
+                                                    variante="danger"
+                                                    disabled={procesando === c.cita.id_cita}
+                                                    onClick={() => handleFalta(c.cita.id_cita)}
+                                                >
+                                                    ✗ Falta
+                                                </Boton>
+                                            )}
+                                            {acciones.corregir && (
+                                                <Boton
+                                                    tamano="sm"
+                                                    variante="secondary"
+                                                    disabled={procesando === c.cita.id_cita}
+                                                    onClick={() => handleCorregir(c.cita.id_cita)}
+                                                >
+                                                    ↺ Corregir: asistió
+                                                </Boton>
+                                            )}
+                                            {c.cita.estado === 'RESERVADA' && !acciones.asistio && (
+                                                <span className="text-xs text-mute italic">— cita de un día futuro —</span>
+                                            )}
+                                            {c.cita.estado === 'RESERVADA' && acciones.asistio && !acciones.falta && (
+                                                <span className="text-[11px] text-mute italic">Falta: disponible a la hora de la cita</span>
+                                            )}
+                                            {c.cita.estado !== 'RESERVADA' && !acciones.corregir && (
                                                 <span className="text-xs text-mute italic">— ya registrado —</span>
                                             )}
                                         </div>

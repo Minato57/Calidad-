@@ -1,6 +1,7 @@
 // =================================================================
 // CAPA: Presentation / Controllers — Pagos
-//   GET  /pagos/requisito?id_dependiente=   → ¿debe pagar? (SIS)
+//   GET  /pagos/requisito?id_dependiente=   → ¿debe pagar? (SIS / saldo a favor)
+//   GET  /pagos/saldos                      → saldos a favor del titular y familiares
 //   POST /pagos/checkout                    → crea preferencia Mercado Pago
 //   GET  /pagos/:id/verificar?payment_id=   → estado real del pago
 //   POST /pagos/webhook                     → notificación de Mercado Pago
@@ -15,6 +16,12 @@ export class PagoController {
         const idDep = req.query.id_dependiente ? Number(req.query.id_dependiente) : undefined;
         const ev = await this.service.evaluar(req.jwt!.id, idDep);
         return res.json({ ok: true, ...ev });
+    };
+
+    // Saldos a favor del titular y sus familiares
+    saldos = async (req: Request, res: Response) => {
+        const saldos = await this.service.saldosDelPaciente(req.jwt!.id);
+        return res.json({ ok: true, saldos });
     };
 
     checkout = async (req: Request, res: Response) => {

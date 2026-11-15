@@ -12,11 +12,12 @@ import { Header } from '../../components/layout/Header';
 import { Boton } from '../../components/common/Boton';
 import { Card } from '../../components/common/Card';
 import { ModalVerificarSIS } from '../../components/paciente/ModalVerificarSIS';
+import { TarjetaSeguro } from '../../components/paciente/TarjetaSeguro';
 
 import { citasApi } from '../../api/citasApi';
 import { pagosApi } from '../../api/pagosApi';
 import { Especialidad, Horario, DiaCalendario, MedicoReserva, Dependiente, RequisitoPago } from '../../types';
-import { formatearFecha, formatearHora, obtenerIniciales } from '../../utils/formatters';
+import { formatearFecha, formatearFechaIso, formatearHora, obtenerIniciales } from '../../utils/formatters';
 import { useTranslation } from '../../i18n';
 
 type Paso = 1 | 2 | 3 | 4 | 5; // 5 = éxito
@@ -66,6 +67,8 @@ export const Reservar = () => {
     const [cargandoReq, setCargandoReq] = useState(false);
     const [pagoAprobado, setPagoAprobado] = useState<number | null>(null);
     const [modalSIS, setModalSIS]       = useState(false);
+    const [versionReq, setVersionReq]   = useState(0);        // se incrementa para recargar el requisito
+    const sisAutoAbierto = useRef(new Set<string>());         // DNI para los que ya se abrió solo el modal
     const retornoProcesado = useRef(false);
 
     // Cargar especialidades
@@ -141,7 +144,14 @@ export const Reservar = () => {
             setCargandoReq(true);
             try {
                 const r = await pagosApi.requisito(especialidad.requiere_datos_menor ? dependienteSel ?? undefined : undefined);
-                if (activo) setRequisito(r);
+                if (!activo) return;
+                setRequisito(r);
+                // Primera reserva (o SIS vencido): se abre la verificación una sola vez por DNI.
+                const pendiente = r.seguro.estado === 'SIN_VERIFICAR' || r.seguro.estado === 'VENCIDO';
+                if (pendiente && r.seguro.puede_recalibrar && !sisAutoAbierto.current.has(r.dni)) {
+                    sisAutoAbierto.current.add(r.dni);
+                    setModalSIS(true);
+                }
             } catch {
                 if (activo) setRequisito(null); // si falla, el backend igual valida al reservar
             } finally {
@@ -149,7 +159,7 @@ export const Reservar = () => {
             }
         })();
         return () => { activo = false; };
-    }, [paso, horaSel, dependienteSel, especialidad]);
+    }, [paso, horaSel, dependienteSel, especialidad, versionReq]);
 
     // Retorno desde Mercado Pago: verificar el pago y confirmar la cita
     useEffect(() => {
@@ -392,16 +402,17 @@ export const Reservar = () => {
 
             {modalSIS && (
                 <ModalVerificarSIS
-                    dni={especialidad?.requiere_datos_menor ? (dependientes.find(d => d.id_dependiente === dependienteSel)?.dni || '') : (requisito?.dni || '')}
+                    // El backend ya resolvió el DNI del paciente efectivo (titular o familiar)
+                    dni={requisito?.dni || ''}
+                    nombrePaciente={(() => {
+                        if (!especialidad?.requiere_datos_menor) return undefined;
+                        const d = dependientes.find(x => x.id_dependiente === dependienteSel);
+                        return d ? `${d.nombres} ${d.apellidos}` : undefined;
+                    })()}
                     abierto={modalSIS}
                     onCerrar={() => setModalSIS(false)}
-                    onVerificado={(seguro) => {
-                        setRequisito((prev) => prev ? {
-                            ...prev,
-                            seguro,
-                            requiere_pago: !seguro.tiene_seguro,
-                        } : null);
-                    }}
+                    // El cobro lo decide el backend: se recarga el requisito con el nuevo estado.
+                    onVerificado={() => setVersionReq(v => v + 1)}
                 />
             )}
         </div>
@@ -811,42 +822,27 @@ const PasoHorario = ({
                     </div>
                 )}
                 {!cargandoReq && !pagoAprobado && requisito && (
-                    requisito.requiere_pago ? (
-                        <div role="status" className="rounded-lg p-4 border border-warning bg-warning-soft">
-                            <div className="flex items-center justify-between">
-                                <p className="text-sm font-bold text-warning">El paciente no cuenta con SIS</p>
-                                {onAbrirModalSIS && (
-                                    <button
-                                        type="button"
-                                        onClick={onAbrirModalSIS}
-                                        className="text-xs bg-white text-blue-700 hover:bg-blue-50 px-2.5 py-1 rounded-md border border-blue-200 font-bold transition-all shadow-xs"
-                                    >
-                                        🔍 Verificar en SIS
-                                    </button>
-                                )}
-                            </div>
-                            <p className="text-xs text-ink-soft mt-1">
-                                Debes pagar <strong>S/ {requisito.monto.toFixed(2)}</strong> con Mercado Pago para confirmar la cita.
+                    <div className="space-y-2">
+                        <TarjetaSeguro seguro={requisito.seguro} onVerificar={() => onAbrirModalSIS?.()} />
+                        {requisito.requiere_pago ? (
+                            <p className="text-xs text-ink-soft px-1">
+                                Debes pagar <strong>S/ {requisito.monto.toFixed(2)}</strong> con Mercado Pago para confirmar la cita
+                                {(requisito.seguro.estado === 'SIN_VERIFICAR' || requisito.seguro.estado === 'VENCIDO')
+                                    && ', o verifica tu SIS para que sea gratuita'}.
                             </p>
-                            {!requisito.seguro.verificado && (
-                                <p className="text-[11px] text-mute mt-1">
-                                    ¿Cuentas con SIS? Realiza la consulta con tu Captcha para verificar tu afiliación y obtener cita gratuita.
+                        ) : requisito.usa_saldo && requisito.saldo ? (
+                            <div role="status" className="rounded-lg p-3 border border-success bg-green-50">
+                                <p className="text-xs text-success font-semibold">
+                                    ✓ Tienes saldo a favor de S/ {requisito.saldo.monto.toFixed(2)} (pago del {formatearFechaIso(requisito.saldo.creado_en)}).
                                 </p>
-                            )}
-                        </div>
-                    ) : (
-                        <div role="status" className="rounded-lg p-4 border border-success bg-green-50">
-                            <div className="flex items-center justify-between">
-                                <p className="text-sm font-bold text-success">✓ Cuentas con SIS — tu cita es gratuita</p>
-                                <span className="text-[11px] bg-green-200 text-green-800 px-2 py-0.5 rounded-full font-bold">
-                                    {requisito.seguro.verificado ? 'Acreditado oficial' : 'Acreditado'}
-                                </span>
+                                <p className="text-[11px] text-ink-soft mt-0.5">Se usará para esta cita; no tendrás que pagar de nuevo.</p>
                             </div>
-                            {requisito.seguro.detalle && (
-                                <p className="text-xs text-green-800 mt-1">{requisito.seguro.detalle}</p>
-                            )}
-                        </div>
-                    )
+                        ) : (
+                            <p className="text-xs text-success font-semibold px-1">
+                                {requisito.seguro.estado === 'CON_SIS' ? 'Tu cita es gratuita (cubierta por el SIS).' : 'Esta cita no requiere pago.'}
+                            </p>
+                        )}
+                    </div>
                 )}
 
                 <div className="bg-sky-soft rounded-lg p-4">

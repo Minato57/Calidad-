@@ -2,21 +2,46 @@
 // Perfil del Paciente.
 // Muestra datos personales + contadores estadísticos.
 // =================================================================
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { Header } from '../../components/layout/Header';
 import { Card } from '../../components/common/Card';
+import { ModalVerificarSIS } from '../../components/paciente/ModalVerificarSIS';
+import { TarjetaSeguro } from '../../components/paciente/TarjetaSeguro';
 
 import { useAuth } from '../../auth/useAuth';
 import { useTranslation } from '../../i18n';
 import { citasApi } from '../../api/citasApi';
-import { ContadoresPaciente } from '../../types';
-import { obtenerIniciales } from '../../utils/formatters';
+import { pagosApi, segurosApi } from '../../api/pagosApi';
+import { ContadoresPaciente, PersonaSeguro, SaldoPaciente } from '../../types';
+import { formatearFechaIso, obtenerIniciales } from '../../utils/formatters';
 
 export const Perfil = () => {
     const { user } = useAuth();
     const { t } = useTranslation();
     const [contadores, setContadores] = useState<ContadoresPaciente | null>(null);
+
+    // Seguro SIS del titular y sus familiares
+    const [personas, setPersonas]       = useState<PersonaSeguro[] | null>(null);
+    const [errorSIS, setErrorSIS]       = useState<string | null>(null);
+    const [verificando, setVerificando] = useState<PersonaSeguro | null>(null);
+
+    // Saldos a favor (pagos no usados o de citas canceladas)
+    const [saldos, setSaldos] = useState<SaldoPaciente[]>([]);
+
+    const cargarSeguros = useCallback(async () => {
+        try {
+            setPersonas(await segurosApi.misEstados());
+            setErrorSIS(null);
+        } catch {
+            setErrorSIS('No pudimos cargar el estado del SIS.');
+        }
+        try {
+            setSaldos(await pagosApi.saldos());
+        } catch {
+            setSaldos([]);
+        }
+    }, []);
 
     useEffect(() => {
         void (async () => {
@@ -27,7 +52,8 @@ export const Perfil = () => {
                 console.error('Error cargando contadores:', e);
             }
         })();
-    }, []);
+        void cargarSeguros();
+    }, [cargarSeguros]);
 
     return (
         <div className="min-h-screen bg-smoke">
@@ -142,7 +168,68 @@ export const Perfil = () => {
                         {t.avisoEditarDatos}
                     </p>
                 </Card>
+
+                {/* ====== Seguro Integral de Salud (SIS) ====== */}
+                <h2 className="text-xs font-bold text-sky-deep tracking-widest mb-3 mt-8">
+                    🏛️ SEGURO INTEGRAL DE SALUD (SIS)
+                </h2>
+                <Card className="p-6 space-y-4">
+                    <p className="text-xs text-mute">
+                        Con SIS activo tus citas son gratuitas. La verificación con SIS vale 90 días (te avisaremos por correo antes de que venza).
+                        Si no tienes SIS y luego lo renuevas, pulsa «Recalibrar».
+                    </p>
+                    {errorSIS && <p className="text-xs text-danger font-semibold">⚠ {errorSIS}</p>}
+                    {!personas && !errorSIS && <p className="text-sm text-mute">Cargando...</p>}
+                    {personas?.map(p => (
+                        <div key={p.id_usuario}>
+                            <p className="text-sm font-bold text-ink mb-1">
+                                {p.nombres} {p.apellidos}
+                                <span className="ml-2 text-[11px] font-semibold text-mute">
+                                    {p.es_titular ? 'Titular' : (p.parentesco ?? 'Familiar')} · DNI {p.dni ?? '—'}
+                                </span>
+                            </p>
+                            {p.seguro ? (
+                                <TarjetaSeguro seguro={p.seguro} onVerificar={() => setVerificando(p)} />
+                            ) : (
+                                <p className="text-xs text-mute">Sin DNI registrado: no es posible verificar el SIS.</p>
+                            )}
+                        </div>
+                    ))}
+                </Card>
+
+                {/* ====== Saldo a favor ====== */}
+                {saldos.length > 0 && (
+                    <>
+                        <h2 className="text-xs font-bold text-sky-deep tracking-widest mb-3 mt-8">
+                            💳 SALDO A FAVOR
+                        </h2>
+                        <Card className="p-6 space-y-2">
+                            <p className="text-xs text-mute">
+                                Pagos que no se usaron o cuyas citas fueron canceladas. Se aplican automáticamente
+                                en la próxima reserva del mismo paciente.
+                            </p>
+                            {saldos.map(s => (
+                                <div key={s.id_pago} className="flex items-center justify-between rounded-lg border border-success bg-green-50 px-4 py-2">
+                                    <span className="text-sm text-ink-soft">
+                                        <strong>{s.paciente || `DNI ${s.dni}`}</strong> · pago del {formatearFechaIso(s.creado_en)}
+                                    </span>
+                                    <span className="text-sm font-bold text-success">S/ {s.monto.toFixed(2)}</span>
+                                </div>
+                            ))}
+                        </Card>
+                    </>
+                )}
             </main>
+
+            {verificando?.dni && (
+                <ModalVerificarSIS
+                    dni={verificando.dni}
+                    nombrePaciente={verificando.es_titular ? undefined : `${verificando.nombres} ${verificando.apellidos}`}
+                    abierto
+                    onCerrar={() => setVerificando(null)}
+                    onVerificado={() => void cargarSeguros()}
+                />
+            )}
         </div>
     );
 };

@@ -19,7 +19,6 @@ import { AppDataSource } from '../../../../config/datasource';
 import { IAdminRepository } from '../../domain/repositories/IAdminRepository';
 import { Configuracion } from '../../domain/entities/configuracion.entity';
 
-import { FechaBloqueadaModel } from '../models/fecha-bloqueada.model';
 import { ConfiguracionModel } from '../models/configuracion.model';
 import { ConfiguracionMapping } from '../mapping/configuracion.mapping';
 
@@ -32,7 +31,6 @@ import { MedicoModel } from '../../../citas/infrastructure/models/medico.model';
 import { UsuarioFactory } from '../../../usuarios/domain/factories/usuario.factory';
 
 export class AdminRepository implements IAdminRepository {
-    private fechaBloqueadaRepo: Repository<FechaBloqueadaModel>;
     private configuracionRepo: Repository<ConfiguracionModel>;
     private citaRepo: Repository<CitaModel>;
     private especialidadRepo: Repository<EspecialidadModel>;
@@ -40,7 +38,6 @@ export class AdminRepository implements IAdminRepository {
     private medicoRepo: Repository<MedicoModel>;
 
     constructor() {
-        this.fechaBloqueadaRepo = AppDataSource.getRepository(FechaBloqueadaModel);
         this.configuracionRepo  = AppDataSource.getRepository(ConfiguracionModel);
         this.citaRepo           = AppDataSource.getRepository(CitaModel);
         this.especialidadRepo   = AppDataSource.getRepository(EspecialidadModel);
@@ -51,78 +48,67 @@ export class AdminRepository implements IAdminRepository {
     // =============================================================
     // 1) CANCELACIÓN MASIVA
     // =============================================================
-    async cancelarCitasPorFechaEspecialidad(
-        fecha: string,
-        idEspecialidad: number,
-        _motivo: string,
-    ): Promise<{ afectadas: number; idsUsuariosAfectados: number[] }> {
-        const citas = await this.citaRepo
-            .createQueryBuilder('c')
-            .innerJoin('horarios', 'h',  'h.id_horario = c.id_horario')
-            .innerJoin('medicos',  'm',  'm.id_medico = h.id_medico')
-            .select(['c.id_cita AS id_cita', 'c.id_usuario AS id_usuario'])
-            .where('h.fecha = :fecha', { fecha })
-            .andWhere('m.id_especialidad = :idEsp', { idEsp: idEspecialidad })
-            .andWhere("c.estado NOT IN ('CANCELADA','COMPLETADA','FALTA')")
-            .getRawMany();
+    async cancelacionMasiva(datos: {
+        fecha: string;
+        idEspecialidad: number;
+        motivo: string;
+        creadoPor: number;
+    }): Promise<{ afectadas: number; pacientesNotificados: number }> {
+        const { fecha, idEspecialidad, motivo, creadoPor } = datos;
 
-        if (citas.length === 0) {
-            return { afectadas: 0, idsUsuariosAfectados: [] };
-        }
+        return AppDataSource.transaction(async (tx) => {
+            // Bloquea las filas para que nadie las modifique durante la operación
+            const citas = await tx.query(
+                `SELECT c.id_cita, c.id_usuario, c.id_horario, e.nombre AS especialidad,
+                        (SELECT p.monto FROM pagos p WHERE p.id_cita = c.id_cita AND p.estado = 'APROBADO' LIMIT 1) AS monto_pagado
+                 FROM citas c
+                 INNER JOIN horarios h       ON h.id_horario = c.id_horario
+                 INNER JOIN medicos m        ON m.id_medico = h.id_medico
+                 INNER JOIN especialidades e ON e.id_especialidad = m.id_especialidad
+                 WHERE h.fecha = ? AND m.id_especialidad = ?
+                   AND c.estado = 'RESERVADA'
+                 FOR UPDATE OF c`,
+                [fecha, idEspecialidad],
+            );
+            if (citas.length === 0) return { afectadas: 0, pacientesNotificados: 0 };
 
-        const idsCitas    = citas.map(c => c.id_cita);
-        const idsUsuarios = citas.map(c => c.id_usuario);
+            const idsCitas    = citas.map((c: any) => Number(c.id_cita));
+            const idsHorarios = citas.map((c: any) => Number(c.id_horario));
+            const marcas = (n: number) => Array(n).fill('?').join(',');
 
-        await this.citaRepo
-            .createQueryBuilder()
-            .update(CitaModel)
-            .set({ estado: 'CANCELADA' })
-            .whereInIds(idsCitas)
-            .execute();
+            // a) Cancelar las citas y liberar sus horarios
+            await tx.query(`UPDATE citas SET estado = 'CANCELADA' WHERE id_cita IN (${marcas(idsCitas.length)})`, idsCitas);
+            await tx.query(`UPDATE horarios SET disponible = 1 WHERE id_horario IN (${marcas(idsHorarios.length)})`, idsHorarios);
 
-        return {
-            afectadas: idsCitas.length,
-            idsUsuariosAfectados: idsUsuarios,
-        };
-    }
+            // b) Bloquear la fecha para esa especialidad (no se podrá volver a reservar)
+            await tx.query(
+                `INSERT INTO fechas_bloqueadas (fecha, id_especialidad, motivo, creado_por)
+                 VALUES (?, ?, ?, ?)
+                 ON DUPLICATE KEY UPDATE motivo = VALUES(motivo), creado_por = VALUES(creado_por)`,
+                [fecha, idEspecialidad, motivo, creadoPor],
+            );
 
-    async insertarNotificacionesMasivas(
-        idsUsuarios: number[],
-        idCita: number | null,
-        mensaje: string,
-    ): Promise<void> {
-        if (idsUsuarios.length === 0) return;
+            // c) Una notificación por cita (vinculada a su cita)
+            const [a, m, d] = fecha.split('-');
+            for (const c of citas) {
+                await tx.query(
+                    `INSERT INTO notificaciones (id_cita, id_usuario, tipo, mensaje, enviado, leida, fecha_programada)
+                     VALUES (?, ?, 'CANCELACION', ?, 1, 0, NOW())`,
+                    [
+                        Number(c.id_cita), Number(c.id_usuario),
+                        `Tu cita de ${c.especialidad} del ${d}/${m}/${a} fue cancelada debido a: ${motivo}. Esa fecha no tendrá atención en ${c.especialidad}; puedes reservar en otra fecha.`
+                        + (c.monto_pagado !== null
+                            ? ` Tu pago de S/ ${Number(c.monto_pagado).toFixed(2)} queda como saldo a favor para tu próxima reserva.`
+                            : ''),
+                    ],
+                );
+            }
 
-        const values = idsUsuarios.map(idUsuario => ({
-            id_cita: idCita,
-            id_usuario: idUsuario,
-            tipo: 'CANCELACION',
-            mensaje,
-            enviado: false,
-            fecha_programada: new Date(),
-        }));
-
-        await AppDataSource
-            .createQueryBuilder()
-            .insert()
-            .into('notificaciones')
-            .values(values)
-            .execute();
-    }
-
-    async registrarFechaBloqueada(
-        fecha: string,
-        idEspecialidad: number,
-        motivo: string,
-        creadoPor: number,
-    ): Promise<void> {
-        const registro = this.fechaBloqueadaRepo.create({
-            fecha: new Date(fecha),
-            id_especialidad: idEspecialidad,
-            motivo,
-            creado_por: creadoPor,
+            return {
+                afectadas: idsCitas.length,
+                pacientesNotificados: new Set(citas.map((c: any) => Number(c.id_usuario))).size,
+            };
         });
-        await this.fechaBloqueadaRepo.save(registro);
     }
 
     // =============================================================
@@ -148,40 +134,6 @@ export class AdminRepository implements IAdminRepository {
         });
         const guardada = await this.especialidadRepo.save(nueva);
         return { id: guardada.id_especialidad };
-    }
-
-    async inhabilitarEspecialidad(
-        idEspecialidad: number,
-        desde: string,
-        hasta: string,
-        motivo: string,
-        creadoPor: number,
-    ): Promise<void> {
-        await this.especialidadRepo.update(
-            { id_especialidad: idEspecialidad },
-            { estado: 'INACTIVA' },
-        );
-
-        const inicio = new Date(desde);
-        const fin    = new Date(hasta);
-        const registros: Partial<FechaBloqueadaModel>[] = [];
-
-        for (
-            let d = new Date(inicio);
-            d <= fin;
-            d.setDate(d.getDate() + 1)
-        ) {
-            registros.push({
-                fecha: new Date(d),
-                id_especialidad: idEspecialidad,
-                motivo,
-                creado_por: creadoPor,
-            });
-        }
-
-        if (registros.length > 0) {
-            await this.fechaBloqueadaRepo.insert(registros);
-        }
     }
 
     // =============================================================

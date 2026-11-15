@@ -22,6 +22,8 @@ import { ReservarCitaDTO } from '../dto/reservar-cita.dto';
 import { CitaFactory } from '../../domain/factories/cita.factory';
 import { fechaEsReservable, esHoraPasada } from '../../domain/horario.config';
 import { PagoService } from '../../../pagos/application/services/pago.service';
+import { evaluarCancelacion } from '../../domain/cancelacion';
+import { enTransaccion, ErrorNegocio } from '../../../../shared/db/transaccion';
 
 export class CitaService {
     private especialidadRepo: IEspecialidadRepository = new EspecialidadRepository();
@@ -130,49 +132,45 @@ export class CitaService {
             return { ok: false, mensaje: 'Ese horario ya fue reservado, selecciona otro.' };
         }
 
-        // (8) Guardia final anti-carrera
-        const existente = await this.horarioRepo.findByMedicoFechaHora(data.id_medico, data.fecha, data.hora);
-        if (existente) {
-            return { ok: false, mensaje: 'Ese horario ya fue reservado, selecciona otro.' };
-        }
-        // (8.1) El usuario no puede tener OTRA cita a la misma fecha+hora (con otro médico)
-        const yaTieneCita = await this.citaRepo.usuarioYaTieneCitaEn(idUsuario, data.fecha, data.hora);
-        if (yaTieneCita) {
+        // (8) El usuario no puede tener OTRA cita a la misma fecha+hora (con otro médico)
+        if (await this.citaRepo.usuarioYaTieneCitaEn(idUsuario, data.fecha, data.hora)) {
             return { ok: false, mensaje: 'Ya tienes una cita reservada a esa misma hora' };
         }
 
-        // (8.2) Cobro: con SIS la cita es gratuita; sin SIS se exige un pago aprobado.
+        // (8.1) Cobro: con SIS la cita es gratuita; sin SIS se exige un pago aprobado.
         const cobro = await this.pagoService.validarParaReserva(idUsuario, data.id_dependiente, data.id_pago);
         if (!cobro.ok) {
             return { ok: false, mensaje: cobro.mensaje ?? 'Pago requerido', requiere_pago: true };
         }
 
-        // (9) Crear el horario (ocupado) y la cita RESERVADA
-        let idHorario: number;
+        // (9) TRANSACCIÓN: tomar el horario + crear la cita + consumir el pago.
+        //     Si cualquier paso falla, no queda nada a medias (ni horario ocupado
+        //     sin cita, ni pago consumido sin cita).
         try {
-            idHorario = await this.horarioRepo.crearHorario(data.id_medico, data.fecha, data.hora);
+            const guardada = await enTransaccion(async (tx) => {
+                // Revalida dentro de la transacción (reservas simultáneas del mismo usuario)
+                if (await this.citaRepo.usuarioYaTieneCitaEn(idUsuario, data.fecha, data.hora, tx)) {
+                    throw new ErrorNegocio('Ya tienes una cita reservada a esa misma hora');
+                }
+                // Crea el horario o reutiliza uno cuyas citas fueron canceladas
+                const idHorario = await this.horarioRepo.tomarHorario(tx, data.id_medico, data.fecha, data.hora);
+
+                const nueva = CitaFactory.crearReserva(idUsuario, {
+                    id_horario: idHorario,
+                    id_especialidad: data.id_especialidad,
+                    id_dependiente: data.id_dependiente,
+                    motivo: data.motivo,
+                    notas: data.notas,
+                });
+                const cita = await this.citaRepo.save(nueva, tx);
+                await this.pagoService.confirmarCobro(cobro, idUsuario, cita.id_cita, tx);
+                return cita;
+            });
+            return { ok: true, mensaje: '¡Felicidades, ya tienes tu cita reservada!', cita: guardada };
         } catch (err: any) {
-            // Choque de reservas simultáneas sobre el mismo slot (UNIQUE de la BD).
-            if (err?.esConflictoHorario) {
-                return { ok: false, mensaje: 'Ese horario ya fue reservado, selecciona otro.' };
-            }
+            if (err instanceof ErrorNegocio) return { ok: false, mensaje: err.message, ...err.extra };
             throw err;
         }
-
-        const nueva = CitaFactory.crearReserva(idUsuario, {
-            id_horario: idHorario,
-            id_especialidad: data.id_especialidad,
-            id_dependiente: data.id_dependiente,
-            motivo: data.motivo,
-            notas: data.notas,
-        });
-
-        const guardada = await this.citaRepo.save(nueva);
-
-        await this.pagoService.confirmarCobro(cobro, idUsuario, guardada.id_cita);
-
-
-        return { ok: true, mensaje: '¡Felicidades, ya tienes tu cita reservada!', cita: guardada };
     }
 
     // Verifica si la cuenta está suspendida (misma regla dinámica que el login).
@@ -256,48 +254,58 @@ export class CitaService {
         }
 
         // Solo se pueden cancelar citas activas
-        if (!['RESERVADA', 'CONFIRMADA', 'RECORDATORIO'].includes(cita.estado)) {
+        if (cita.estado !== 'RESERVADA') {
             return { ok: false, mensaje: `No se puede cancelar una cita en estado ${cita.estado}` };
         }
 
-        // Cancelar la cita (libera el horario)
-        await this.citaRepo.cancelar(idCita);
+        // No se puede cancelar una cita pasada; < 24 h sanciona (salvo periodo de gracia)
+        const fechaHora = await this.citaRepo.obtenerFechaHoraDeCita(idCita);
+        if (!fechaHora) {
+            return { ok: false, mensaje: 'No se encontró el horario de la cita' };
+        }
+        const evaluacion = evaluarCancelacion({
+            inicioCita: new Date(`${fechaHora.fecha}T${fechaHora.hora}`),
+            reservadaEn: new Date(cita.fecha_registro),
+            ahora: new Date(),
+        });
+        if (!evaluacion.permitida) {
+            return { ok: false, mensaje: evaluacion.motivo! };
+        }
 
-        // ----- SANCIÓN POR CANCELACIÓN DE ÚLTIMO MOMENTO (menos de 24h) -----
+        // TRANSACCIÓN: cancelar + liberar horario + sanción + notificación
+        const limiteStr = await this.citaRepo.obtenerConfig('limite_cancelaciones');
+        const limite = limiteStr ? Number(limiteStr) : 3;
         let sancionada = false;
         let cuentaBloqueada = false;
+        try {
+            await enTransaccion(async (tx) => {
+                if (!(await this.citaRepo.cancelar(idCita, tx))) {
+                    throw new ErrorNegocio('La cita ya no está activa', 400);
+                }
+                if (!evaluacion.sancionable) return;
 
-        const fechaHora = await this.citaRepo.obtenerFechaHoraDeCita(idCita);
-        if (fechaHora) {
-            const fechaCita = new Date(`${fechaHora.fecha}T${fechaHora.hora}`);
-            const ahora = new Date();
-            const horasDeAnticipacion = (fechaCita.getTime() - ahora.getTime()) / (1000 * 60 * 60);
-
-            // Solo sanciona si cancela con menos de 24h (y la cita aún no pasó)
-            if (horasDeAnticipacion < 24 && horasDeAnticipacion > -24) {
                 sancionada = true;
-                const totalCancelaciones = await this.citaRepo.incrementarCancelaciones(idUsuario);
-
-                const limiteStr = await this.citaRepo.obtenerConfig('limite_cancelaciones');
-                const limite = limiteStr ? Number(limiteStr) : 3;
-
+                const totalCancelaciones = await this.citaRepo.incrementarCancelaciones(idUsuario, tx);
                 if (totalCancelaciones >= limite) {
-                    await this.citaRepo.bloquearPorCancelaciones(idUsuario);
+                    await this.citaRepo.bloquearPorCancelaciones(idUsuario, tx);
                     cuentaBloqueada = true;
                     await this.citaRepo.crearNotificacion(
                         idUsuario,
                         `Tu cuenta ha sido suspendida por acumular ${totalCancelaciones} cancelaciones de último momento. No podrás agendar citas durante el periodo de suspensión.`,
-                        idCita,
+                        idCita, tx, 'BLOQUEO_CUENTA',
                     );
                 } else {
                     const restantes = limite - totalCancelaciones;
                     await this.citaRepo.crearNotificacion(
                         idUsuario,
                         `Registramos una cancelación de último momento (${totalCancelaciones} de ${limite}). Te ${restantes === 1 ? 'queda 1 cancelación' : `quedan ${restantes} cancelaciones`} antes de que tu cuenta sea suspendida.`,
-                        idCita,
+                        idCita, tx, 'SANCION',
                     );
                 }
-            }
+            });
+        } catch (err: any) {
+            if (err instanceof ErrorNegocio) return { ok: false, mensaje: err.message };
+            throw err;
         }
 
         let mensaje = 'Cita cancelada correctamente';
@@ -307,7 +315,13 @@ export class CitaService {
             mensaje = 'Cita cancelada. Ten en cuenta que cancelar con menos de 24h de anticipación cuenta como una cancelación tardía.';
         }
 
-        return { ok: true, mensaje, id_cita: idCita, sancionada, cuentaBloqueada };
+        // Si la cita estaba pagada, el pago queda como saldo a favor (no se pierde)
+        const saldoAFavor = await this.pagoService.montoPagadoDeCita(idCita);
+        if (saldoAFavor !== null) {
+            mensaje += ` Tu pago de S/ ${saldoAFavor.toFixed(2)} queda como saldo a favor para una próxima cita de este paciente.`;
+        }
+
+        return { ok: true, mensaje, id_cita: idCita, sancionada, cuentaBloqueada, saldo_a_favor: saldoAFavor };
     }
     async listarMedicosDeEspecialidad(idEspecialidad: number) {
         const medicos = await this.horarioVirtualRepo.listarMedicosDeEspecialidad(idEspecialidad);

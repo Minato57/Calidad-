@@ -16,6 +16,7 @@ import {
     MinLength,
     Matches,
 } from 'class-validator';
+import { IsFechaNacimiento } from '../../../../shared/validators/fecha-nacimiento.validator';
 
 export class RegisterDTO {
     @IsNotEmpty({ message: 'El correo es obligatorio' })
@@ -59,7 +60,7 @@ export class RegisterDTO {
     @MaxLength(200)
     direccion?: string;
 
-    @IsOptional()
-    @IsString()
-    fecha_nacimiento?: string;
+    @IsNotEmpty({ message: 'La fecha de nacimiento es obligatoria' })
+    @IsFechaNacimiento()
+    fecha_nacimiento!: string;
 }

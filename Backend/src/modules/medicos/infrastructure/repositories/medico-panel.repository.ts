@@ -118,14 +118,27 @@ export class MedicoPanelRepository {
         id_cita: number; id_medico: number; diagnostico: string;
         receta: string | null; indicaciones: string | null;
         codigo: string; correo: string | null;
+        emitido: Date;   // instante firmado (se guarda para poder recalcular la firma)
     }): Promise<number> {
         return await AppDataSource.transaction(async (m) => {
             const ins = await m.query(
-                `INSERT INTO atenciones (id_cita, id_medico, diagnostico, receta, indicaciones, codigo_verificacion, correo_destino)
-                 VALUES (?, ?, ?, ?, ?, ?, ?)`,
-                [data.id_cita, data.id_medico, data.diagnostico, data.receta, data.indicaciones, data.codigo, data.correo],
+                `INSERT INTO atenciones (id_cita, id_medico, diagnostico, receta, indicaciones, codigo_verificacion, correo_destino, fecha_atencion)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                [data.id_cita, data.id_medico, data.diagnostico, data.receta, data.indicaciones, data.codigo, data.correo, data.emitido],
             );
             await m.query(`UPDATE citas SET estado = 'COMPLETADA' WHERE id_cita = ?`, [data.id_cita]);
+            // Asistió: reinicia las inasistencias CONSECUTIVAS del titular de la cita
+            await m.query(
+                `UPDATE usuarios u INNER JOIN citas c ON c.id_usuario = u.id_usuario
+                 SET u.inasistencias = 0 WHERE c.id_cita = ?`,
+                [data.id_cita],
+            );
+            // Historial de asistencia (auditoría)
+            await m.query(
+                `INSERT INTO historial_asistencia (id_cita, id_usuario, estado)
+                 SELECT id_cita, id_usuario, 'COMPLETADA' FROM citas WHERE id_cita = ?`,
+                [data.id_cita],
+            );
             return Number(ins.insertId);
         });
     }
@@ -136,7 +149,7 @@ export class MedicoPanelRepository {
 
     async verificarCodigo(codigo: string) {
         const rows = await AppDataSource.query(
-            `SELECT a.fecha_atencion, a.diagnostico, a.receta, a.indicaciones,
+            `SELECT a.id_cita, a.id_medico, a.fecha_atencion, a.diagnostico, a.receta, a.indicaciones,
                     m.nombres, m.apellidos, mu.cmp, e.nombre AS especialidad
              FROM atenciones a
              INNER JOIN medicos m ON m.id_medico = a.id_medico
@@ -147,14 +160,18 @@ export class MedicoPanelRepository {
         );
         if (rows.length === 0) return null;
         const r = rows[0];
+        // Los datos clínicos se devuelven SOLO para recalcular la firma en el servicio;
+        // la respuesta pública no los expone.
         return {
+            id_cita: Number(r.id_cita),
+            id_medico: Number(r.id_medico),
             medico: `${r.nombres} ${r.apellidos}`,
             cmp: r.cmp ?? null,
             especialidad: r.especialidad,
-            diagnostico: r.diagnostico,
+            diagnostico: String(r.diagnostico),
             receta: r.receta ?? null,
             indicaciones: r.indicaciones ?? null,
-            fecha_atencion: new Date(r.fecha_atencion).toISOString(),
+            fecha_atencion: new Date(r.fecha_atencion),
         };
     }
 }

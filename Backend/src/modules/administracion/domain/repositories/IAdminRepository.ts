@@ -11,24 +11,17 @@ export interface IAdminRepository {
     // ============================================================
     // 1) CANCELACIÓN MASIVA
     // ============================================================
-    cancelarCitasPorFechaEspecialidad(
-        fecha: string,
-        idEspecialidad: number,
-        motivo: string,
-    ): Promise<{ afectadas: number; idsUsuariosAfectados: number[] }>;
-
-    insertarNotificacionesMasivas(
-        idsUsuarios: number[],
-        idCita: number | null,
-        mensaje: string,
-    ): Promise<void>;
-
-    registrarFechaBloqueada(
-        fecha: string,
-        idEspecialidad: number,
-        motivo: string,
-        creadoPor: number,
-    ): Promise<void>;
+    /**
+     * En UNA transacción: cancela las citas activas de esa fecha y especialidad,
+     * libera sus horarios, bloquea la fecha para nuevas reservas y notifica a
+     * cada paciente. Si no hay citas activas no modifica nada.
+     */
+    cancelacionMasiva(datos: {
+        fecha: string;
+        idEspecialidad: number;
+        motivo: string;
+        creadoPor: number;
+    }): Promise<{ afectadas: number; pacientesNotificados: number }>;
 
     // ============================================================
     // 2) GESTIÓN DE ESPECIALIDADES
@@ -40,14 +33,6 @@ export interface IAdminRepository {
         descripcion: string,
         requiereDatosMenor?: boolean,
     ): Promise<{ id: number }>;
-
-    inhabilitarEspecialidad(
-        idEspecialidad: number,
-        desde: string,
-        hasta: string,
-        motivo: string,
-        creadoPor: number,
-    ): Promise<void>;
 
     // ============================================================
     // 3) CONFIGURACIÓN DE SANCIONES

@@ -18,7 +18,10 @@ import { AppDataSource } from '../../../../config/datasource';
 import {
     IAsistenciaRepository,
     CitaDelDia,
+    CitaParaMarcarDB,
 } from '../../domain/repositories/IAsistenciaRepository';
+import { Tx } from '../../../../shared/db/transaccion';
+import { TipoNotificacion } from '../../../notificaciones/domain/entities/notificacion.entity';
 
 // ----- ENTIDADES del Domain (lo que devolvemos al Service) -----
 import { Cita } from '../../../citas/domain/entities/cita.entity';
@@ -26,9 +29,7 @@ import { Configuracion } from '../../../administracion/domain/entities/configura
 
 // ----- MODELS de TypeORM (uso INTERNO únicamente) -----
 import { CitaModel } from '../../../citas/infrastructure/models/cita.model';
-import { UserModel } from '../../../usuarios/infrastructure/models/user.model';
 import { ConfiguracionModel } from '../../../administracion/infrastructure/models/configuracion.model';
-import { NotificacionModel } from '../../../notificaciones/infrastructure/models/notificacion.model';
 
 // ----- MAPPINGS (traducen Model ⇄ Entity) -----
 import { CitaMapping } from '../../../citas/infrastructure/mapping/cita.mapping';
@@ -50,15 +51,11 @@ function fechaLocalStr(fecha: any): string {
 export class AsistenciaRepository implements IAsistenciaRepository {
     // Los repos de TypeORM trabajan con Models (necesario por decoradores)
     private citaRepo: Repository<CitaModel>;
-    private userRepo: Repository<UserModel>;
     private configRepo: Repository<ConfiguracionModel>;
-    private notifRepo: Repository<NotificacionModel>;
 
     constructor() {
         this.citaRepo   = AppDataSource.getRepository(CitaModel);
-        this.userRepo   = AppDataSource.getRepository(UserModel);
         this.configRepo = AppDataSource.getRepository(ConfiguracionModel);
-        this.notifRepo = AppDataSource.getRepository(NotificacionModel);
     }
 
     // ============================================================
@@ -122,48 +119,60 @@ export class AsistenciaRepository implements IAsistenciaRepository {
     }
 
     // ============================================================
-    async obtenerCita(idCita: number): Promise<Cita | null> {
-        const model = await this.citaRepo.findOne({
-            where: { id_cita: idCita },
-        });
+    // Cita + su fecha/hora (para validar si se puede marcar)
+    // ============================================================
+    async obtenerCitaParaMarcar(idCita: number): Promise<CitaParaMarcarDB | null> {
+        const model = await this.citaRepo.findOne({ where: { id_cita: idCita } });
         if (!model) return null;
-        return CitaMapping.toDomain(model);
-    }
-
-    // ============================================================
-    async cambiarEstadoCita(idCita: number, nuevoEstado: string): Promise<void> {
-        await this.citaRepo.update(
-            { id_cita: idCita },
-            { estado: nuevoEstado as any },
+        const [h] = await AppDataSource.query(
+            `SELECT h.fecha, h.hora FROM horarios h WHERE h.id_horario = ? LIMIT 1`, [model.id_horario],
         );
+        if (!h) return null;
+        return { cita: CitaMapping.toDomain(model), fecha: fechaLocalStr(h.fecha), hora: String(h.hora) };
     }
 
     // ============================================================
-    async incrementarInasistencias(idUsuario: number): Promise<number> {
-        await this.userRepo
-            .createQueryBuilder()
-            .update(UserModel)
-            .set({ inasistencias: () => 'inasistencias + 1' })
-            .where('id_usuario = :id', { id: idUsuario })
-            .execute();
+    // Cambia el estado SOLO si la cita sigue en el estado esperado
+    // (evita que dos personas la marquen a la vez). true = se cambió.
+    // ============================================================
+    async cambiarEstadoCita(tx: Tx, idCita: number, nuevoEstado: string, estadoEsperado: string): Promise<boolean> {
+        const res = await tx.query(
+            `UPDATE citas SET estado = ? WHERE id_cita = ? AND estado = ?`,
+            [nuevoEstado, idCita, estadoEsperado],
+        );
+        return Number(res?.affectedRows ?? 0) > 0;
+    }
 
-        const row = await this.userRepo
-            .createQueryBuilder('u')
-            .select('u.inasistencias', 'inasistencias')
-            .where('u.id_usuario = :id', { id: idUsuario })
-            .getRawOne();
-
+    // ============================================================
+    async incrementarInasistencias(tx: Tx, idUsuario: number): Promise<number> {
+        await tx.query(`UPDATE usuarios SET inasistencias = inasistencias + 1 WHERE id_usuario = ?`, [idUsuario]);
+        const [row] = await tx.query(`SELECT inasistencias FROM usuarios WHERE id_usuario = ?`, [idUsuario]);
         return row ? Number(row.inasistencias) : 0;
     }
 
+    // Las inasistencias son CONSECUTIVAS: asistir reinicia el contador.
+    async reiniciarInasistencias(tx: Tx, idUsuario: number): Promise<void> {
+        await tx.query(`UPDATE usuarios SET inasistencias = 0 WHERE id_usuario = ?`, [idUsuario]);
+    }
+
     // ============================================================
-    async bloquearCuenta(idUsuario: number): Promise<void> {
+    async bloquearCuenta(tx: Tx, idUsuario: number): Promise<void> {
         const hoy = new Date();
         const fechaStr = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`;
-        await this.userRepo.update(
-            { id_usuario: idUsuario },
-            { cuenta_bloqueada: true, fecha_bloqueo: fechaStr as any },
+        await tx.query(
+            `UPDATE usuarios SET cuenta_bloqueada = 1, fecha_bloqueo = ? WHERE id_usuario = ?`,
+            [fechaStr, idUsuario],
         );
+    }
+
+    // Al corregir una falta: levanta la suspensión si NO hay otro motivo (cancelaciones).
+    async desbloquearSiSoloPorInasistencias(tx: Tx, idUsuario: number, limiteCancelaciones: number): Promise<boolean> {
+        const res = await tx.query(
+            `UPDATE usuarios SET cuenta_bloqueada = 0, fecha_bloqueo = NULL
+             WHERE id_usuario = ? AND cuenta_bloqueada = 1 AND cancelaciones < ?`,
+            [idUsuario, limiteCancelaciones],
+        );
+        return Number(res?.affectedRows ?? 0) > 0;
     }
 
     // ============================================================
@@ -172,17 +181,35 @@ export class AsistenciaRepository implements IAsistenciaRepository {
         if (!model) return null;
         return ConfiguracionMapping.toDomain(model);
     }
-    // Crea una notificación para el paciente
-    async crearNotificacion(idUsuario: number, mensaje: string, idCita: number | null = null): Promise<void> {
-        const notif = this.notifRepo.create({
-            id_usuario: idUsuario,
-            id_cita: idCita as any,
-            tipo: 'RECORDATORIO' as any,
-            mensaje,
-            enviado: true,
-            leida: false,
-            fecha_programada: new Date(),
-        } as any);
-        await this.notifRepo.save(notif);
+
+    // Crea una notificación para el paciente (buzón + correo vía cron)
+    async crearNotificacion(tx: Tx, idUsuario: number, tipo: TipoNotificacion, mensaje: string, idCita: number | null): Promise<void> {
+        await tx.query(
+            `INSERT INTO notificaciones (id_cita, id_usuario, tipo, mensaje, enviado, leida, fecha_programada)
+             VALUES (?, ?, ?, ?, 1, 0, NOW())`,
+            [idCita, idUsuario, tipo, mensaje],
+        );
+    }
+
+    // Historial de asistencia (auditoría): cada marca queda registrada,
+    // incluida la corrección de una falta (FALTA y luego COMPLETADA).
+    async registrarHistorial(tx: Tx, idCita: number, idUsuario: number, estado: 'COMPLETADA' | 'FALTA'): Promise<void> {
+        await tx.query(
+            `INSERT INTO historial_asistencia (id_cita, id_usuario, estado) VALUES (?, ?, ?)`,
+            [idCita, idUsuario, estado],
+        );
+    }
+
+    // ============================================================
+    // Citas RESERVADAS cuya hora ya pasó y que nadie marcó (cierre nocturno)
+    // ============================================================
+    async citasVencidasSinMarcar(): Promise<number[]> {
+        const rows = await AppDataSource.query(
+            `SELECT c.id_cita FROM citas c
+             INNER JOIN horarios h ON h.id_horario = c.id_horario
+             WHERE c.estado = 'RESERVADA' AND TIMESTAMP(h.fecha, h.hora) < NOW()
+             ORDER BY h.fecha, h.hora`,
+        );
+        return rows.map((r: any) => Number(r.id_cita));
     }
 }

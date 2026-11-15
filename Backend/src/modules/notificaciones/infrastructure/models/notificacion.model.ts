@@ -7,6 +7,7 @@ import {
     PrimaryGeneratedColumn,
     Column,
 } from 'typeorm';
+import { TIPOS_NOTIFICACION, TipoNotificacion } from '../../domain/entities/notificacion.entity';
 
 @Entity('notificaciones')
 export class NotificacionModel {
@@ -19,8 +20,8 @@ export class NotificacionModel {
     @Column()
     id_usuario!: number;
 
-    @Column({ type: 'enum', enum: ['CANCELACION', 'RECORDATORIO'] })
-    tipo!: 'CANCELACION' | 'RECORDATORIO';
+    @Column({ type: 'enum', enum: [...TIPOS_NOTIFICACION] })
+    tipo!: TipoNotificacion;
 
     @Column({ type: 'text' })
     mensaje!: string;

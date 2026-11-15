@@ -13,7 +13,6 @@ import { AppDataSource } from '../../../../config/datasource';
 import { EspecialidadModel } from '../../../citas/infrastructure/models/especialidad.model';
 import { MedicoModel } from '../../../citas/infrastructure/models/medico.model';
 import { CitaModel } from '../../../citas/infrastructure/models/cita.model';
-import { UserModel } from '../../../usuarios/infrastructure/models/user.model';
 import { NotificacionModel } from '../../../notificaciones/infrastructure/models/notificacion.model';
 
 const DIAS_ANTICIPACION = 5;
@@ -41,7 +40,6 @@ export class DisponibilidadService {
     private readonly especialidadRepo = AppDataSource.getRepository(EspecialidadModel);
     private readonly medicoRepo       = AppDataSource.getRepository(MedicoModel);
     private readonly citaRepo         = AppDataSource.getRepository(CitaModel);
-    private readonly userRepo         = AppDataSource.getRepository(UserModel);
     private readonly notifRepo        = AppDataSource.getRepository(NotificacionModel);
 
     async ejecutarRevisionDiaria() {
@@ -76,7 +74,8 @@ export class DisponibilidadService {
             if (fHab && (esp as any).aviso_habilitacion_enviado === 0) {
                 const fechaAviso = restarDias(fHab, DIAS_ANTICIPACION);
                 if (hoy >= fechaAviso) {
-                    await this.avisarReaperturaTodos(`La especialidad ${esp.nombre} estará disponible desde el ${fHab}. ¡Ya puedes agendar tu cita!`);
+                    await this.avisarReaperturaAfectados({ idEspecialidad: esp.id_especialidad }, fInhab, fHab,
+                        `La especialidad ${esp.nombre} estará disponible desde el ${fHab}. ¡Ya puedes agendar tu cita!`);
                     await this.especialidadRepo.update({ id_especialidad: esp.id_especialidad }, { aviso_habilitacion_enviado: 1 });
                     avisosEnviados++;
                 }
@@ -115,7 +114,8 @@ export class DisponibilidadService {
             if (fHab && (med as any).aviso_habilitacion_enviado === 0) {
                 const fechaAviso = restarDias(fHab, DIAS_ANTICIPACION);
                 if (hoy >= fechaAviso) {
-                    await this.avisarReaperturaTodos(`El Dr. ${med.nombres} ${med.apellidos} estará disponible desde el ${fHab}. ¡Ya puedes agendar tu cita!`);
+                    await this.avisarReaperturaAfectados({ idMedico: med.id_medico }, fInhab, fHab,
+                        `El Dr. ${med.nombres} ${med.apellidos} estará disponible desde el ${fHab}. ¡Ya puedes agendar tu cita!`);
                     await this.medicoRepo.update({ id_medico: med.id_medico }, { aviso_habilitacion_enviado: 1 } as any);
                     avisosEnviados++;
                 }
@@ -142,7 +142,7 @@ export class DisponibilidadService {
             .innerJoin('medicos', 'm', 'm.id_medico = h.id_medico')
             .where('m.id_especialidad = :idEsp', { idEsp: idEspecialidad })
             .andWhere('h.fecha >= :desde', { desde })
-            .andWhere('c.estado IN (:...estados)', { estados: ['RESERVADA', 'CONFIRMADA', 'RECORDATORIO'] });
+            .andWhere('c.estado IN (:...estados)', { estados: ['RESERVADA'] });
 
         if (hasta) {
             query.andWhere('h.fecha < :hasta', { hasta });
@@ -151,10 +151,11 @@ export class DisponibilidadService {
         const citas = await query.select(['c.id_cita AS id_cita', 'c.id_usuario AS id_usuario']).getRawMany();
 
         for (const c of citas) {
-            await this.citaRepo.update({ id_cita: Number(c.id_cita) }, { estado: 'CANCELADA' as any });
-            const mensaje = hasta
+            await this.cancelarYLiberar(Number(c.id_cita));
+            const mensaje = (hasta
                 ? `Tu cita de ${nombreEsp} fue cancelada porque la especialidad no atenderá en esa fecha. Podrás reservar nuevamente desde el ${hasta}.`
-                : `Tu cita de ${nombreEsp} fue cancelada porque la especialidad no atenderá en esa fecha.`;
+                : `Tu cita de ${nombreEsp} fue cancelada porque la especialidad no atenderá en esa fecha.`)
+                + await this.notaSaldo(Number(c.id_cita));
             await this.crearNotificacion(Number(c.id_usuario), Number(c.id_cita), 'CANCELACION', mensaje);
         }
         return citas.length;
@@ -166,7 +167,7 @@ export class DisponibilidadService {
             .innerJoin('horarios', 'h', 'h.id_horario = c.id_horario')
             .where('h.id_medico = :idMedico', { idMedico })
             .andWhere('h.fecha >= :desde', { desde })
-            .andWhere('c.estado IN (:...estados)', { estados: ['RESERVADA', 'CONFIRMADA', 'RECORDATORIO'] });
+            .andWhere('c.estado IN (:...estados)', { estados: ['RESERVADA'] });
 
         if (hasta) {
             query.andWhere('h.fecha < :hasta', { hasta });
@@ -175,20 +176,62 @@ export class DisponibilidadService {
         const citas = await query.select(['c.id_cita AS id_cita', 'c.id_usuario AS id_usuario']).getRawMany();
 
         for (const c of citas) {
-            await this.citaRepo.update({ id_cita: Number(c.id_cita) }, { estado: 'CANCELADA' as any });
-            const mensaje = hasta
+            await this.cancelarYLiberar(Number(c.id_cita));
+            const mensaje = (hasta
                 ? `Tu cita con el Dr. ${nombreMedico} fue cancelada porque no atenderá en esa fecha. Podrás reservar nuevamente desde el ${hasta}.`
-                : `Tu cita con el Dr. ${nombreMedico} fue cancelada porque no atenderá en esa fecha.`;
+                : `Tu cita con el Dr. ${nombreMedico} fue cancelada porque no atenderá en esa fecha.`)
+                + await this.notaSaldo(Number(c.id_cita));
             await this.crearNotificacion(Number(c.id_usuario), Number(c.id_cita), 'CANCELACION', mensaje);
         }
         return citas.length;
     }
 
-    private async avisarReaperturaTodos(mensaje: string) {
-        const pacientes = await this.userRepo.find({ where: { rol: 'PACIENTE' as any } });
-        for (const p of pacientes) {
-            await this.crearNotificacion(p.id_usuario, null, 'RECORDATORIO', mensaje);
+    // Cancela la cita y libera su horario (igual que la cancelación del paciente)
+    private async cancelarYLiberar(idCita: number) {
+        await AppDataSource.transaction(async (tx) => {
+            await tx.query(`UPDATE citas SET estado = 'CANCELADA' WHERE id_cita = ?`, [idCita]);
+            await tx.query(
+                `UPDATE horarios h INNER JOIN citas c ON c.id_horario = h.id_horario SET h.disponible = 1 WHERE c.id_cita = ?`,
+                [idCita],
+            );
+        });
+    }
+
+    // Si la cita estaba pagada, el pago queda como saldo a favor del paciente
+    private async notaSaldo(idCita: number): Promise<string> {
+        const rows = await AppDataSource.query(
+            `SELECT monto FROM pagos WHERE id_cita = ? AND estado = 'APROBADO' LIMIT 1`, [idCita],
+        );
+        return rows.length > 0
+            ? ` Tu pago de S/ ${Number(rows[0].monto).toFixed(2)} queda como saldo a favor para tu próxima reserva.`
+            : '';
+    }
+
+    // Avisa la reapertura SOLO a los pacientes que tuvieron citas canceladas
+    // de esa especialidad o médico durante el cierre (no a todos los pacientes).
+    private async avisarReaperturaAfectados(
+        filtro: { idEspecialidad: number } | { idMedico: number },
+        fInhab: string | null,
+        fHab: string,
+        mensaje: string,
+    ): Promise<number> {
+        // Si no hay fecha de cierre registrada, se consideran los últimos 60 días.
+        const desde = fInhab ?? restarDias(hoyStr(), 60);
+        const porEspecialidad = 'idEspecialidad' in filtro;
+        const rows = await AppDataSource.query(
+            `SELECT DISTINCT c.id_usuario
+             FROM citas c
+             INNER JOIN horarios h ON h.id_horario = c.id_horario
+             INNER JOIN medicos m  ON m.id_medico = h.id_medico
+             WHERE c.estado = 'CANCELADA'
+               AND ${porEspecialidad ? 'm.id_especialidad' : 'h.id_medico'} = ?
+               AND h.fecha >= ? AND h.fecha < ?`,
+            [porEspecialidad ? filtro.idEspecialidad : filtro.idMedico, desde, fHab],
+        );
+        for (const r of rows) {
+            await this.crearNotificacion(Number(r.id_usuario), null, 'RECORDATORIO', mensaje);
         }
+        return rows.length;
     }
 
     private async crearNotificacion(idUsuario: number, idCita: number | null, tipo: string, mensaje: string) {

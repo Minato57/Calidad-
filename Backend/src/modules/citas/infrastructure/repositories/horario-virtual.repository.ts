@@ -128,6 +128,17 @@ export class HorarioVirtualRepository {
         return { medico, datosMedico, datosEsp };
     }
 
+    // Fechas bloqueadas (cancelación masiva) de una especialidad en un rango.
+    // id_especialidad NULL = bloqueo para todas las especialidades.
+    private async fechasBloqueadas(idEspecialidad: number, desde: string, hasta: string): Promise<Set<string>> {
+        const rows = await AppDataSource.query(
+            `SELECT DATE_FORMAT(fecha, '%Y-%m-%d') AS fecha FROM fechas_bloqueadas
+             WHERE fecha BETWEEN ? AND ? AND (id_especialidad = ? OR id_especialidad IS NULL)`,
+            [desde, hasta, idEspecialidad],
+        );
+        return new Set(rows.map((r: any) => String(r.fecha)));
+    }
+
     // ============================================================
     // Slots de un día PARA UN MÉDICO (respeta disponibilidad)
     // ============================================================
@@ -157,6 +168,11 @@ export class HorarioVirtualRepository {
         if (datosEsp && !estaDisponibleEnFecha(datosEsp, fecha, hoy)) {
             return { ok: false, motivo: 'La especialidad no atiende en esa fecha', slots: [] };
         }
+        // Fecha bloqueada por una cancelación masiva (o bloqueo general)
+        const bloqueadas = await this.fechasBloqueadas(medico.id_especialidad, fecha, fecha);
+        if (bloqueadas.has(fecha)) {
+            return { ok: false, motivo: 'Esa fecha no hay atención en esta especialidad', slots: [] };
+        }
 
         let todosLosSlots = generarSlotsDelDia();
 
@@ -169,7 +185,7 @@ export class HorarioVirtualRepository {
             .select('h.hora', 'hora')
             .where('h.fecha = :fecha', { fecha })
             .andWhere('h.id_medico = :idMedico', { idMedico })
-            .andWhere('c.estado IN (:...estados)', { estados: ['RESERVADA', 'CONFIRMADA', 'RECORDATORIO', 'COMPLETADA'] })
+            .andWhere('c.estado IN (:...estados)', { estados: ['RESERVADA', 'COMPLETADA'] })
             .getRawMany();
 
         const horasOcupadas = new Set(citasOcupadas.map(c => String(c.hora)));
@@ -205,6 +221,10 @@ export class HorarioVirtualRepository {
         const totalSlots = generarSlotsDelDia().length;
         const diasDelMes = new Date(anio, mes, 0).getDate();
         const dias: { fecha: string; total: number; libres: number; reservable: boolean }[] = [];
+        const mm = String(mes).padStart(2, '0');
+        const bloqueadas = await this.fechasBloqueadas(
+            medico.id_especialidad, `${anio}-${mm}-01`, `${anio}-${mm}-${String(diasDelMes).padStart(2, '0')}`,
+        );
 
         for (let d = 1; d <= diasDelMes; d++) {
             const fechaStr = `${anio}-${String(mes).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
@@ -219,7 +239,7 @@ export class HorarioVirtualRepository {
             const medOk = estaDisponibleEnFecha(datosMedico, fechaStr, hoy);
             const espOk = datosEsp ? estaDisponibleEnFecha(datosEsp, fechaStr, hoy) : true;
 
-            if (!medOk || !espOk) {
+            if (!medOk || !espOk || bloqueadas.has(fechaStr)) {
                 dias.push({ fecha: fechaStr, total: 0, libres: 0, reservable: false });
                 continue;
             }
@@ -229,7 +249,7 @@ export class HorarioVirtualRepository {
                 .innerJoin('horarios', 'h', 'h.id_horario = c.id_horario')
                 .where('h.fecha = :fecha', { fecha: fechaStr })
                 .andWhere('h.id_medico = :idMedico', { idMedico })
-                .andWhere('c.estado IN (:...estados)', { estados: ['RESERVADA', 'CONFIRMADA', 'RECORDATORIO', 'COMPLETADA'] })
+                .andWhere('c.estado IN (:...estados)', { estados: ['RESERVADA', 'COMPLETADA'] })
                 .getCount();
 
             dias.push({ fecha: fechaStr, total: totalSlots, libres: totalSlots - ocupadas, reservable: true });

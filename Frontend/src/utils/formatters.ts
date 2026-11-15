@@ -18,6 +18,26 @@ const parseFechaLocal = (fecha: string): Date | null => {
 /**
  * Formatea "2026-06-16" a "16 de junio de 2026"
  */
+// Fecha de HOY en hora local "YYYY-MM-DD" (toISOString usa UTC y después de las 7 pm daría mañana)
+export const hoyLocal = (): string => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+
+// ¿La cita ya empezó o pasó? (una cita pasada no se puede cancelar)
+export const citaYaInicio = (fecha?: string | null, hora?: string | null): boolean => {
+    if (!fecha || !hora) return false;
+    const inicio = new Date(`${fecha}T${hora}`);
+    return !Number.isNaN(inicio.getTime()) && inicio.getTime() <= Date.now();
+};
+
+// Para instantes ISO del backend (ej. "2026-11-16T01:00:00.000Z"): se muestran en hora local.
+export const formatearFechaIso = (iso: string): string => {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return iso;
+    return d.toLocaleDateString('es-PE', { day: '2-digit', month: 'long', year: 'numeric' });
+};
+
 export const formatearFecha = (fecha: string): string => {
     const d = parseFechaLocal(fecha);
     if (!d) return fecha;

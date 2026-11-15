@@ -6,7 +6,8 @@ import { Repository } from 'typeorm';
 
 import { AppDataSource } from '../../../../config/datasource';
 import { CitaModel } from '../models/cita.model';
-import { HorarioModel } from '../models/horario.model';
+import { Tx } from '../../../../shared/db/transaccion';
+import { TipoNotificacion } from '../../../notificaciones/domain/entities/notificacion.entity';
 import { ICitaRepository } from '../../domain/repositories/ICitaRepository';
 import { Cita } from '../../domain/entities/cita.entity';
 import { CitaMapping } from '../mapping/cita.mapping';
@@ -26,18 +27,21 @@ function fechaLocalStr(fecha: any): string {
 
 export class CitaRepository implements ICitaRepository {
     private repo: Repository<CitaModel>;
-    private horarioRepo: Repository<HorarioModel>;
     private notifRepo: Repository<NotificacionModel>;
 
     constructor() {
         this.repo = AppDataSource.getRepository(CitaModel);
-        this.horarioRepo = AppDataSource.getRepository(HorarioModel);
         this.notifRepo = AppDataSource.getRepository(NotificacionModel);
     }
 
-    async save(cita: Cita): Promise<Cita> {
+    // Usa la transacción si se pasa una; si no, la conexión normal.
+    private m(tx?: Tx) {
+        return tx ?? this.repo.manager;
+    }
+
+    async save(cita: Cita, tx?: Tx): Promise<Cita> {
         const model = CitaMapping.toModel(cita);
-        const saved = await this.repo.save(model);
+        const saved = await this.m(tx).getRepository(CitaModel).save(model);
         return CitaMapping.toDomain(saved);
     }
 
@@ -112,14 +116,12 @@ export class CitaRepository implements ICitaRepository {
         const faltas      = await this.repo.count({ where: { id_usuario: idUsuario, estado: 'FALTA' } });
         const canceladas  = await this.repo.count({ where: { id_usuario: idUsuario, estado: 'CANCELADA' } });
 
-        const reservadas    = await this.repo.count({ where: { id_usuario: idUsuario, estado: 'RESERVADA' } });
-        const confirmadas   = await this.repo.count({ where: { id_usuario: idUsuario, estado: 'CONFIRMADA' } });
-        const recordatorios = await this.repo.count({ where: { id_usuario: idUsuario, estado: 'RECORDATORIO' } });
+        const reservadas  = await this.repo.count({ where: { id_usuario: idUsuario, estado: 'RESERVADA' } });
 
         return {
             total,
             completadas,
-            proximas: reservadas + confirmadas + recordatorios,
+            proximas: reservadas,
             canceladas,
             faltas,
         };
@@ -170,17 +172,21 @@ export class CitaRepository implements ICitaRepository {
         return CitaMapping.toDomain(model);
     }
 
-    async cancelar(idCita: number): Promise<boolean> {
-        const cita = await this.repo.findOne({ where: { id_cita: idCita } });
-        if (!cita) return false;
-
-        await this.repo.update({ id_cita: idCita }, { estado: 'CANCELADA' as any });
-
-        await this.horarioRepo.update(
-            { id_horario: cita.id_horario },
-            { disponible: true },
+    // Cancela la cita y libera su horario (podrá volver a reservarse).
+    // Solo cancela si la cita sigue activa: evita doble cancelación concurrente.
+    async cancelar(idCita: number, tx?: Tx): Promise<boolean> {
+        const m = this.m(tx);
+        const res = await m.query(
+            `UPDATE citas SET estado = 'CANCELADA'
+             WHERE id_cita = ? AND estado = 'RESERVADA'`,
+            [idCita],
         );
-
+        if (Number(res?.affectedRows ?? 0) === 0) return false;
+        await m.query(
+            `UPDATE horarios h INNER JOIN citas c ON c.id_horario = h.id_horario
+             SET h.disponible = 1 WHERE c.id_cita = ?`,
+            [idCita],
+        );
         return true;
     }
     // Devuelve la fecha y hora del horario de una cita (para calcular anticipación)
@@ -200,12 +206,12 @@ export class CitaRepository implements ICitaRepository {
     }
 
     // Incrementa el contador de cancelaciones del usuario y devuelve el nuevo total
-    async incrementarCancelaciones(idUsuario: number): Promise<number> {
-        await this.repo.manager.query(
+    async incrementarCancelaciones(idUsuario: number, tx?: Tx): Promise<number> {
+        await this.m(tx).query(
             'UPDATE usuarios SET cancelaciones = cancelaciones + 1 WHERE id_usuario = ?',
             [idUsuario],
         );
-        const row = await this.repo.manager.query(
+        const row = await this.m(tx).query(
             'SELECT cancelaciones FROM usuarios WHERE id_usuario = ? LIMIT 1',
             [idUsuario],
         );
@@ -213,10 +219,10 @@ export class CitaRepository implements ICitaRepository {
     }
 
     // Bloquea la cuenta por cancelaciones (guarda fecha de bloqueo)
-    async bloquearPorCancelaciones(idUsuario: number): Promise<void> {
+    async bloquearPorCancelaciones(idUsuario: number, tx?: Tx): Promise<void> {
         const hoy = new Date();
         const fechaStr = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`;
-        await this.repo.manager.query(
+        await this.m(tx).query(
             'UPDATE usuarios SET cuenta_bloqueada = 1, fecha_bloqueo = ? WHERE id_usuario = ?',
             [fechaStr, idUsuario],
         );
@@ -260,27 +266,31 @@ export class CitaRepository implements ICitaRepository {
         );
     }
     // ¿El usuario YA tiene una cita activa a esa misma fecha y hora? (con cualquier médico)
-    async usuarioYaTieneCitaEn(idUsuario: number, fecha: string, hora: string): Promise<boolean> {
-        const total = await this.repo
+    async usuarioYaTieneCitaEn(idUsuario: number, fecha: string, hora: string, tx?: Tx): Promise<boolean> {
+        const total = await this.m(tx).getRepository(CitaModel)
             .createQueryBuilder('c')
             .innerJoin('horarios', 'h', 'h.id_horario = c.id_horario')
             .where('c.id_usuario = :idUsuario', { idUsuario })
             .andWhere('h.fecha = :fecha', { fecha })
             .andWhere('h.hora = :hora', { hora })
-            .andWhere('c.estado IN (:...estados)', { estados: ['RESERVADA', 'CONFIRMADA', 'RECORDATORIO'] })
+            .andWhere('c.estado IN (:...estados)', { estados: ['RESERVADA'] })
             .getCount();
         return total > 0;
     }
-    async crearNotificacion(idUsuario: number, mensaje: string, idCita: number | null = null): Promise<void> {
-        const notif = this.notifRepo.create({
+    async crearNotificacion(
+        idUsuario: number, mensaje: string, idCita: number | null = null, tx?: Tx,
+        tipo: TipoNotificacion = 'SANCION',
+    ): Promise<void> {
+        const notifRepo = tx ? tx.getRepository(NotificacionModel) : this.notifRepo;
+        const notif = notifRepo.create({
             id_usuario: idUsuario,
             id_cita: idCita as any,
-            tipo: 'RECORDATORIO' as any,
+            tipo,
             mensaje,
             enviado: true,
             leida: false,
             fecha_programada: new Date(),
         } as any);
-        await this.notifRepo.save(notif);
+        await notifRepo.save(notif);
     }
 }

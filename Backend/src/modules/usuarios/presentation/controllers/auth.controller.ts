@@ -56,9 +56,10 @@ export class AuthController {
     // ============================================================
     logout = async (req: Request, res: Response) => {
         // authHandler garantiza que req.jwt existe en este punto.
-        const idUsuario = req.jwt!.id;
+        const { id, jti } = req.jwt!;
 
-        const result = await this.authService.logout(idUsuario);
+        // Revoca la sesión: el token deja de ser válido de inmediato
+        const result = await this.authService.logout(id, jti);
 
         return res.status(200).json(result);
     };

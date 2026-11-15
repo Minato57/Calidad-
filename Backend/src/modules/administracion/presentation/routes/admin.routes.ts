@@ -16,7 +16,6 @@ import { authHandler } from '../../../../shared/middlewares/auth.handler';
 
 import { CancelacionMasivaDTO } from '../../application/dto/cancelacion-masiva.dto';
 import { NuevaEspecialidadDTO } from '../../application/dto/nueva-especialidad.dto';
-import { InhabilitarEspecialidadDTO } from '../../application/dto/inhabilitar-especialidad.dto';
 import { ConfigurarSancionesDTO } from '../../application/dto/configurar-sanciones.dto';
 import { CrearAdmisionDTO } from '../../application/dto/crear-admision.dto';
 import { CrearMedicoDTO } from '../../application/dto/crear-medico.dto';
@@ -53,18 +52,8 @@ router.post(
     controller.crearEspecialidad,
 );
 
-// ============================================================
-// 3) Inhabilitar especialidad temporalmente
-//    PUT /admin/especialidad/inhabilitar
-// ============================================================
-router.put(
-    '/especialidad/inhabilitar',
-    authHandler({
-        roles: ['ADMIN'],
-        dto: InhabilitarEspecialidadDTO,
-    }),
-    controller.inhabilitarEspecialidad,
-);
+// (3) La inhabilitación de una especialidad se hace con
+//     POST /admin/programar-especialidad (fecha de cierre y reapertura).
 
 // ============================================================
 // 4) Configuración de sanciones

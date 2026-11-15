@@ -3,8 +3,10 @@
 // Pagos de consulta con Mercado Pago (Checkout Pro) vía API REST.
 //
 // Regla de negocio:
-//   - Paciente (o familiar) con SIS  → cita gratuita (pago EXONERADO).
-//   - Sin SIS                         → debe existir un pago APROBADO
+//   - Paciente (o familiar) con SIS activo y VERIFICADO en el portal
+//                                     → cita gratuita (pago EXONERADO).
+//   - Sin SIS o sin verificación vigente
+//                                     → debe existir un pago APROBADO
 //                                       antes de confirmar la reserva.
 //
 // Variables de entorno:
@@ -17,13 +19,24 @@
 // =================================================================
 import { AppDataSource } from '../../../../config/datasource';
 import { SeguroService, ResultadoSeguro } from '../../../seguros/application/services/seguro.service';
+import { cubiertoPorSIS } from '../../../seguros/domain/sis-protocolo';
+import { Tx, ErrorNegocio } from '../../../../shared/db/transaccion';
+import { motivoNoUsable } from '../../domain/saldo';
 
 const MP_API = 'https://api.mercadopago.com';
+
+export interface SaldoAFavor {
+    id_pago: number;
+    monto: number;
+    creado_en: string;
+}
 
 export interface EvaluacionCobro {
     dni: string;
     seguro: ResultadoSeguro;
-    requiere_pago: boolean;
+    requiere_pago: boolean;        // true = debe pagar dinero nuevo en Mercado Pago
+    saldo: SaldoAFavor | null;     // pago previo reutilizable de ESTE paciente
+    usa_saldo: boolean;            // la cita se cubrirá con el saldo a favor
     monto: number;
     moneda: 'PEN';
 }
@@ -36,6 +49,12 @@ export interface ResultadoValidacionCobro {
     id_pago?: number;
     dni?: string;
 }
+
+// Pago + estado de la cita a la que está aplicado (si hay)
+const SQL_PAGO_CON_CITA = `
+    SELECT p.*, c.estado AS estado_cita
+    FROM pagos p
+    LEFT JOIN citas c ON c.id_cita = p.id_cita`;
 
 export class PagoService {
     private seguroService = new SeguroService();
@@ -80,8 +99,64 @@ export class PagoService {
             throw Object.assign(new Error('No se encontró el DNI del paciente'), { status: 400 });
         }
         const seguro = await this.seguroService.consultar(dni);
-        const requiere = this.habilitado && !seguro.tiene_seguro;
-        return { dni, seguro, requiere_pago: requiere, monto: this.tarifa, moneda: 'PEN' };
+        // Solo exonera un SIS activo Y verificado; un estado sin verificar exige pago.
+        const cubierto = cubiertoPorSIS(seguro);
+        const saldo = await this.saldoDisponible(idUsuario, dni);
+        const cobrar = this.habilitado && !cubierto;
+        return {
+            dni, seguro, saldo,
+            usa_saldo: cobrar && !!saldo,
+            requiere_pago: cobrar && !saldo,
+            monto: this.tarifa, moneda: 'PEN',
+        };
+    }
+
+    // ------------------------------------------------------------
+    // Saldo a favor: el pago aprobado más antiguo de ESTE paciente que
+    // no esté aplicado a una cita vigente (ver domain/saldo.ts).
+    // ------------------------------------------------------------
+    async saldoDisponible(idUsuario: number, dni: string): Promise<SaldoAFavor | null> {
+        const rows = await AppDataSource.query(
+            `${SQL_PAGO_CON_CITA}
+             WHERE p.id_usuario = ? AND p.dni_paciente = ? AND p.estado = 'APROBADO'
+             ORDER BY p.creado_en ASC`,
+            [idUsuario, dni],
+        );
+        const usable = rows.find((r: any) => motivoNoUsable(r, dni, this.tarifa) === null);
+        return usable
+            ? { id_pago: Number(usable.id_pago), monto: Number(usable.monto), creado_en: new Date(usable.creado_en).toISOString() }
+            : null;
+    }
+
+    /** Saldos a favor del titular y sus familiares (Mi Perfil). */
+    async saldosDelPaciente(idUsuario: number) {
+        const rows = await AppDataSource.query(
+            `SELECT p.id_pago, p.monto, p.dni_paciente, p.creado_en, p.estado, p.id_cita, c.estado AS estado_cita,
+                    u.nombres, u.apellidos
+             FROM pagos p
+             LEFT JOIN citas c    ON c.id_cita = p.id_cita
+             LEFT JOIN usuarios u ON u.dni = p.dni_paciente
+             WHERE p.id_usuario = ? AND p.estado = 'APROBADO'
+             ORDER BY p.creado_en ASC`,
+            [idUsuario],
+        );
+        return rows
+            .filter((r: any) => motivoNoUsable(r, String(r.dni_paciente ?? '').trim(), 0) === null)
+            .map((r: any) => ({
+                id_pago: Number(r.id_pago),
+                monto: Number(r.monto),
+                dni: String(r.dni_paciente),
+                paciente: `${r.nombres ?? ''} ${r.apellidos ?? ''}`.trim(),
+                creado_en: new Date(r.creado_en).toISOString(),
+            }));
+    }
+
+    /** Monto pagado (aprobado) aplicado a una cita, o null si no tuvo pago. */
+    async montoPagadoDeCita(idCita: number): Promise<number | null> {
+        const rows = await AppDataSource.query(
+            `SELECT monto FROM pagos WHERE id_cita = ? AND estado = 'APROBADO' LIMIT 1`, [idCita],
+        );
+        return rows.length > 0 ? Number(rows[0].monto) : null;
     }
 
     // ------------------------------------------------------------
@@ -90,7 +165,10 @@ export class PagoService {
     async crearCheckout(idUsuario: number, data: { id_dependiente?: number; descripcion?: string }) {
         const ev = await this.evaluar(idUsuario, data.id_dependiente);
         if (!ev.requiere_pago) {
-            return { ok: true, requiere_pago: false, mensaje: 'Esta cita no requiere pago', evaluacion: ev };
+            const mensaje = ev.usa_saldo
+                ? 'Tienes saldo a favor: la cita se cubrirá con tu pago anterior'
+                : 'Esta cita no requiere pago';
+            return { ok: true, requiere_pago: false, mensaje, evaluacion: ev };
         }
 
         const descripcion = (data.descripcion || 'Consulta médica').slice(0, 200);
@@ -162,13 +240,14 @@ export class PagoService {
     // ------------------------------------------------------------
     async verificar(idUsuario: number, idPago: number, paymentId?: string) {
         const rows = await AppDataSource.query(
-            `SELECT * FROM pagos WHERE id_pago = ? AND id_usuario = ? LIMIT 1`,
+            `${SQL_PAGO_CON_CITA} WHERE p.id_pago = ? AND p.id_usuario = ? LIMIT 1`,
             [idPago, idUsuario],
         );
         const pago = rows[0];
         if (!pago) return { ok: false, mensaje: 'Pago no encontrado' };
         if (pago.estado === 'APROBADO' || pago.estado === 'EXONERADO') {
-            return { ok: true, estado: pago.estado, usado: !!pago.id_cita };
+            // "usado" = aplicado a una cita vigente (si la cita se canceló, vuelve a ser saldo a favor)
+            return { ok: true, estado: pago.estado, usado: !!pago.id_cita && pago.estado_cita !== 'CANCELADA' };
         }
 
         if (this.simulado && pago.mp_preference_id === 'SIMULADO') {
@@ -254,36 +333,58 @@ export class PagoService {
         if (!this.habilitado) return { ok: true, requiere_pago: false };
 
         const ev = await this.evaluar(idUsuario, idDependiente);
-        if (ev.seguro.tiene_seguro) {
+        if (cubiertoPorSIS(ev.seguro)) {
             return { ok: true, requiere_pago: false, exonerado: true, dni: ev.dni };
         }
 
-        if (!idPago) {
-            return {
-                ok: false, requiere_pago: true,
-                mensaje: `El paciente no cuenta con SIS. Debes pagar S/ ${ev.monto.toFixed(2)} para confirmar la cita.`,
-            };
+        // Pago indicado por el frontend (al volver de Mercado Pago): debe servir para ESTE paciente.
+        if (idPago) {
+            const rows = await AppDataSource.query(
+                `${SQL_PAGO_CON_CITA} WHERE p.id_pago = ? AND p.id_usuario = ? LIMIT 1`,
+                [idPago, idUsuario],
+            );
+            const motivo = rows[0] ? motivoNoUsable(rows[0], ev.dni, ev.monto) : 'Pago no encontrado.';
+            if (motivo) return { ok: false, requiere_pago: true, mensaje: motivo };
+            return { ok: true, requiere_pago: true, id_pago: idPago, dni: ev.dni };
         }
-        const rows = await AppDataSource.query(
-            `SELECT * FROM pagos WHERE id_pago = ? AND id_usuario = ? LIMIT 1`,
-            [idPago, idUsuario],
-        );
-        const pago = rows[0];
-        if (!pago || pago.estado !== 'APROBADO' || pago.id_cita) {
-            return { ok: false, requiere_pago: true, mensaje: 'El pago no está aprobado o ya fue utilizado.' };
+
+        // Sin pago indicado: se usa el saldo a favor del paciente, si tiene
+        // (cubre también el caso de recargar la página al volver de Mercado Pago).
+        if (ev.saldo) {
+            return { ok: true, requiere_pago: true, id_pago: ev.saldo.id_pago, dni: ev.dni };
         }
-        return { ok: true, requiere_pago: true, id_pago: idPago, dni: ev.dni };
+
+        const motivo = ev.seguro.verificado
+            ? 'El paciente no cuenta con SIS activo.'
+            : 'No hay una verificación vigente del SIS para el paciente.';
+        return {
+            ok: false, requiere_pago: true,
+            mensaje: `${motivo} Verifica el SIS o paga S/ ${ev.monto.toFixed(2)} para confirmar la cita.`,
+        };
     }
 
-    /** Vincula el cobro con la cita creada (consume el pago o registra la exoneración). */
-    async confirmarCobro(cobro: ResultadoValidacionCobro, idUsuario: number, idCita: number) {
+    /**
+     * Vincula el cobro con la cita creada (consume el pago o registra la exoneración).
+     * Se ejecuta dentro de la transacción de la reserva: si el pago ya fue usado
+     * por otra reserva simultánea, lanza ErrorNegocio y la reserva se deshace.
+     */
+    async confirmarCobro(cobro: ResultadoValidacionCobro, idUsuario: number, idCita: number, tx: Tx) {
         if (cobro.id_pago) {
-            await AppDataSource.query(
-                `UPDATE pagos SET id_cita = ? WHERE id_pago = ? AND id_usuario = ? AND id_cita IS NULL`,
-                [idCita, cobro.id_pago, idUsuario],
+            // Solo si sigue siendo saldo usable de este paciente (sin cita o con su cita cancelada).
+            // Si dos reservas lo usan a la vez, la segunda no actualiza nada y se deshace.
+            const res = await tx.query(
+                `UPDATE pagos p
+                 LEFT JOIN citas c ON c.id_cita = p.id_cita
+                 SET p.id_cita = ?
+                 WHERE p.id_pago = ? AND p.id_usuario = ? AND p.estado = 'APROBADO'
+                   AND p.dni_paciente = ? AND (p.id_cita IS NULL OR c.estado = 'CANCELADA')`,
+                [idCita, cobro.id_pago, idUsuario, cobro.dni ?? ''],
             );
+            if (Number(res?.affectedRows ?? 0) === 0) {
+                throw new ErrorNegocio('El pago no está aprobado o ya fue utilizado.', 402, { requiere_pago: true });
+            }
         } else if (cobro.exonerado) {
-            await AppDataSource.query(
+            await tx.query(
                 `INSERT INTO pagos (id_usuario, id_cita, dni_paciente, monto, moneda, estado, descripcion)
                  VALUES (?, ?, ?, 0, 'PEN', 'EXONERADO', 'Cubierto por SIS')`,
                 [idUsuario, idCita, cobro.dni ?? null],

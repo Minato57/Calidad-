@@ -81,7 +81,6 @@ export const BadgeEstadoCita = ({ estado }: { estado: EstadoCita }) => {
     const { t } = useTranslation();
     const config = {
         RESERVADA:  { variante: 'sky' as const,     texto: t.estadoReservada.toUpperCase(),  conPunto: true },
-        CONFIRMADA: { variante: 'sky' as const,     texto: t.estadoConfirmada.toUpperCase(), conPunto: true },
         EN_CURSO:   { variante: 'warning' as const, texto: t.estadoEnCurso.toUpperCase(),    conPunto: true },
         COMPLETADA: { variante: 'success' as const, texto: `✓ ${t.estadoCompletada.toUpperCase()}`, conPunto: false },
         FALTA:      { variante: 'danger' as const,  texto: `✕ ${t.estadoFalta.toUpperCase()}`,       conPunto: false },
